@@ -1,0 +1,10 @@
+diff --git a/node_modules/@n1xx1/ocgcore-wasm/mod.js b/node_modules/@n1xx1/ocgcore-wasm/mod.js
+index ac67fb1..cc20a75 100644
+--- a/node_modules/@n1xx1/ocgcore-wasm/mod.js
++++ b/node_modules/@n1xx1/ocgcore-wasm/mod.js
+@@ -1,2 +1,2 @@
+ export * from "./dist/index.js";
+-//# sourceMappingURL=mod.js.map
+\ No newline at end of file
++export { default } from "./dist/index.js";
+\ No newline at end of file
