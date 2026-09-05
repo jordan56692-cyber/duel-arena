@@ -3,8 +3,7 @@ import { initCardDatabase, queryCard } from "./cardDb.js";
 
 const output = document.getElementById("output");
 
-// Only the shared root/utility scripts need to be pre-loaded by name.
-// Per-card scripts are now fetched dynamically based on whatever's in the decks.
+// Shared root/utility scripts every duel needs, regardless of which cards are in play.
 const UTILITY_SCRIPT_FILES = [
   "constant.lua", "utility.lua", "card_counter_constants.lua", "archetype_setcode_constants.lua",
   "debug_utility.lua", "chain.lua", "cards_specific_functions.lua", "proc_fusion.lua",
@@ -14,26 +13,52 @@ const UTILITY_SCRIPT_FILES = [
   "proc_spirit.lua", "proc_unofficial.lua", "deprecated_functions.lua",
 ];
 
-// Example decks — any real card code works now, not just the three we've
-// hand-verified before. Man-Eater Bug and Kuriboh have never been touched by
-// us directly; they're here to prove the dynamic pipeline for real.
+// Real decks, real cards — Blue-Eyes support vs Dark World.
 const DECK_P0 = [
-  { code: 99785935, qty: 14 }, // Alpha the Magnet Warrior
-  { code: 26202165, qty: 3 },  // Sangan
-  { code: 54652250, qty: 3 },  // Man-Eater Bug (flip effect — new code path)
+  { code: 89631133, qty: 3 }, // Blue-Eyes White Dragon
+  { code: 79814787, qty: 3 }, // The White Stone of Legend
+  { code: 8240199,  qty: 2 }, // Sage with Eyes of Blue
+  { code: 88241506, qty: 2 }, // Maiden with Eyes of Blue
+  { code: 45467446, qty: 2 }, // Dragon Spirit of White
+  { code: 38120068, qty: 2 }, // Trade-In
+  { code: 39701395, qty: 2 }, // Cards of Consonance
+  { code: 48800175, qty: 2 }, // The Melody of Awakening Dragon
+  { code: 6853254,  qty: 2 }, // Return of the Dragon Lords
 ];
 const DECK_P1 = [
-  { code: 64428736, qty: 17 }, // Alligator's Sword
-  { code: 40640057, qty: 3 },  // Kuriboh (hand-activated effect — new code path)
+  { code: 79126789, qty: 2 }, // Broww, Huntsman of Dark World
+  { code: 32619583, qty: 2 }, // Sillva, Warlord of Dark World
+  { code: 78004197, qty: 2 }, // Goldd, Wu-Lord of Dark World
+  { code: 33731070, qty: 2 }, // Beiige, Vanguard of Dark World
+  { code: 60228941, qty: 2 }, // Snoww, Unlight of Dark World
+  { code: 34230233, qty: 2 }, // Grapha, Dragon Lord of Dark World
+  { code: 33017655, qty: 2 }, // The Gates of Dark World
+  { code: 74117290, qty: 2 }, // Dark World Dealings
+  { code: 93554166, qty: 2 }, // Dark World Lightning
+  { code: 31550470, qty: 2 }, // Escape from the Dark Dimension
 ];
 
 function log(msg) { output.textContent += msg + "\n"; }
 function stringifySafe(obj) {
   return JSON.stringify(obj, (_k, v) => (typeof v === "bigint" ? v.toString() + "n" : v));
 }
-function firstEmptyZone(fieldMask, maxZones = 7) {
-  for (let i = 0; i < maxZones; i++) {
-    if ((fieldMask & (1 << i)) === 0) return i;
+
+// field_mask is a single 32-bit value covering EVERY zone type at once — different
+// bit ranges are "available" depending on which kind of zone is actually being asked
+// about. We detect which range has free bits, rather than assuming based on context.
+function detectZoneLocation(fieldMask) {
+  for (let i = 0; i < 7; i++) {
+    if ((fieldMask & (1 << i)) === 0) return OcgLocation.MZONE;
+  }
+  for (let i = 8; i <= 12; i++) {
+    if ((fieldMask & (1 << i)) === 0) return OcgLocation.SZONE;
+  }
+  if ((fieldMask & (1 << 7)) === 0) return OcgLocation.FZONE;
+  return OcgLocation.MZONE;
+}
+function firstEmptyZone(fieldMask, offset, count) {
+  for (let i = 0; i < count; i++) {
+    if ((fieldMask & (1 << (offset + i))) === 0) return i;
   }
   return 0;
 }
@@ -47,17 +72,27 @@ function selectIndices(msg, RTYPE, field) {
 
 function respond(lib, handle, typeName, msg) {
   switch (typeName) {
-    case "select_idlecmd":
-      if (msg.summons && msg.summons.length > 0) {
+    case "select_idlecmd": {
+      if (msg.activates && msg.activates.length > 0) {
+        log("-> Activating " + msg.activates[0].code + " (player " + msg.player + ")");
+        lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_ACTIVATE, index: 0 });
+      } else if (msg.summons && msg.summons.length > 0) {
         log("-> Normal Summoning " + msg.summons[0].code + " (player " + msg.player + ")");
         lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_SUMMON, index: 0 });
+      } else if (msg.special_summons && msg.special_summons.length > 0) {
+        log("-> Special Summoning " + msg.special_summons[0].code + " (player " + msg.player + ")");
+        lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index: 0 });
+      } else if (msg.spell_sets && msg.spell_sets.length > 0) {
+        log("-> Setting " + msg.spell_sets[0].code + " face-down (player " + msg.player + ")");
+        lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.SELECT_SPELL_SET, index: 0 });
       } else if (msg.to_bp) {
         lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_BP, index: null });
       } else {
         lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_IDLECMD, action: SelectIdleCMDAction.TO_EP, index: null });
       }
       return true;
-    case "select_battlecmd":
+    }
+    case "select_battlecmd": {
       if (msg.attacks && msg.attacks.length > 0) {
         log("-> Declaring attack with attacker index 0 (player " + msg.player + ")");
         lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_BATTLECMD, action: SelectBattleCMDAction.SELECT_BATTLE, index: 0 });
@@ -67,12 +102,17 @@ function respond(lib, handle, typeName, msg) {
         lib.duelSetResponse(handle, { type: OcgResponseType.SELECT_BATTLECMD, action: SelectBattleCMDAction.TO_EP, index: null });
       }
       return true;
+    }
     case "select_place":
     case "select_disfield": {
-      const zone = firstEmptyZone(msg.field_mask);
-      log("-> Placing in Main Monster Zone " + zone + " for player " + msg.player);
+      const location = detectZoneLocation(msg.field_mask);
+      let offset = 0, count = 7;
+      if (location === OcgLocation.SZONE) { offset = 8; count = 5; }
+      else if (location === OcgLocation.FZONE) { offset = 7; count = 1; }
+      const zone = firstEmptyZone(msg.field_mask, offset, count);
+      log("-> Placing in zone " + zone + " (location " + location + ") for player " + msg.player);
       const rt = typeName === "select_place" ? OcgResponseType.SELECT_PLACE : OcgResponseType.SELECT_DISFIELD;
-      lib.duelSetResponse(handle, { type: rt, places: [{ player: msg.player, location: OcgLocation.MZONE, sequence: zone }] });
+      lib.duelSetResponse(handle, { type: rt, places: [{ player: msg.player, location, sequence: zone }] });
       return true;
     }
     case "select_position":
@@ -147,8 +187,8 @@ async function fetchCardScript(code) {
     const res = await fetch("/scripts/official/c" + code + ".lua");
     if (!res.ok) return null;
     const text = await res.text();
-    // Vite serves index.html (status 200) for unmatched paths instead of a real
-    // 404 for unusual extensions like .lua — treat that the same as "no script."
+    // Vite serves index.html (HTTP 200) for unmatched paths instead of a real 404 —
+    // treat that the same as "no script needed for this card."
     if (text.trim().startsWith("<")) return null;
     return text;
   } catch (e) {
@@ -222,7 +262,7 @@ async function run() {
   lib.startDuel(handle);
 
   let iterations = 0;
-  const MAX_ITER = 5000;
+  const MAX_ITER = 1000;
   let lastRealTypeName = null, lastRealMsg = null;
   let duelOver = false;
 
