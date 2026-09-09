@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@n1xx1/ocgcore-wasm": "npm:@jsr/n1xx1__ocgcore-wasm@^0.1.4",
-    "sql.js": "^1.14.2"
+    "sql.js": "^1.14.2",
+    "firebase": "^11.0.0"
   }
 }

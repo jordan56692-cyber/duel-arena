@@ -1,18 +1,3318 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Duel Arena — Engine Test</title>
-  <style>
-    body{ background:#15121c; color:#ede6d6; font-family:monospace; padding:24px; }
-    h1{ color:#e4c976; font-size:20px; }
-    pre{ background:#1f1a2b; padding:16px; border-radius:6px; white-space:pre-wrap; word-break:break-word; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duel Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15121c;
+    --bg-deep:#0e0c14;
+    --panel:#1f1a2b;
+    --panel-light:#282137;
+    --zone-border:#3a324e;
+    --zone-border-active:#8b6fe0;
+    --gold:#c9a24b;
+    --gold-bright:#e4c976;
+    --violet:#8b6fe0;
+    --violet-soft:#5b4d8a;
+    --ember:#c4483b;
+    --parchment:#ede6d6;
+    --muted:#9c93ae;
+    --ok:#6fae7f;
+    --azure:#5f8fc4;
+    --magenta:#b2679e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #241c36 0%, transparent 60%),
+      var(--bg);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Cinzel',serif;}
+  button{font-family:'Inter',sans-serif;}
+  ::selection{background:var(--violet-soft);}
+
+  /* ---------- Nav ---------- */
+  .navbar{
+    position:sticky; top:0; z-index:40;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 20px; background:var(--bg-deep); border-bottom:1px solid var(--zone-border);
+  }
+  .nav-brand{font-family:'Cinzel',serif; color:var(--gold-bright); font-weight:600; font-size:16px;}
+  .nav-tabs{display:flex; gap:6px;}
+  .navbtn{background:none; border:1px solid transparent; color:var(--muted); padding:7px 14px; border-radius:3px; font-size:13px; font-weight:600; cursor:pointer;}
+  .navbtn:hover{color:var(--parchment);}
+  .navbtn.active{color:var(--bg-deep); background:var(--gold-bright);}
+
+  .app-view{display:none;}
+  #view-duel{display:block;}
+
+  /* ---------- Landing ---------- */
+  #landing{
+    min-height:calc(100vh - 52px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .gate{
+    max-width:440px;
+    width:100%;
+    text-align:center;
+  }
+  .gate .eyebrow{
+    color:var(--gold);
+    font-size:13px;
+    letter-spacing:.04em;
+    margin-bottom:6px;
+  }
+  .gate h1{
+    font-size:38px;
+    font-weight:600;
+    color:var(--gold-bright);
+    margin:0 0 8px;
+    text-shadow:0 0 24px rgba(196,164,75,.25);
+  }
+  .gate p.sub{
+    color:var(--muted);
+    margin:0 0 32px;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .card-panel{
+    background:var(--panel);
+    border:1px solid var(--zone-border);
+    border-radius:4px;
+    padding:24px;
+    text-align:left;
+    margin-bottom:16px;
+    position:relative;
+  }
+  .card-panel::before{
+    content:"";
+    position:absolute;
+    top:0;left:0;right:0;
+    height:2px;
+    background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .card-panel h3{
+    margin:0 0 14px;
+    font-size:16px;
+    color:var(--gold-bright);
+    font-weight:600;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  input[type=text]{
+    width:100%;
+    background:var(--bg-deep);
+    border:1px solid var(--zone-border);
+    color:var(--parchment);
+    padding:10px 12px;
+    border-radius:3px;
+    font-size:15px;
+    margin-bottom:14px;
+    font-family:'Inter',sans-serif;
+  }
+  input[type=text]:focus, button:focus-visible{
+    outline:2px solid var(--violet);
+    outline-offset:1px;
+  }
+  .row{display:flex; gap:10px;}
+  .btn{
+    background:var(--panel-light);
+    border:1px solid var(--zone-border);
+    color:var(--parchment);
+    padding:10px 16px;
+    border-radius:3px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:border-color .15s, transform .1s;
+  }
+  .btn:hover{border-color:var(--gold);}
+  .btn:active{transform:scale(.98);}
+  .btn.small{padding:6px 11px; font-size:12px;}
+  .btn-primary{
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    color:#241c0e;
+    border:1px solid var(--gold);
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-danger{border-color:var(--ember); color:#f0c9c4;}
+  .btn-danger:hover{background:rgba(196,72,59,.15);}
+  .btn-block{width:100%;}
+  .err-msg{
+    color:#f0a89e;
+    font-size:13px;
+    margin-top:-6px;
+    margin-bottom:12px;
+    min-height:16px;
+  }
+  .foot-note{color:var(--muted); font-size:12px; margin-top:20px; line-height:1.6;}
+
+  /* ---------- Duel View ---------- */
+  #duel{display:none; flex-direction:column;}
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 18px;
+    background:var(--bg-deep);
+    border-bottom:1px solid var(--zone-border);
+    font-size:13px;
+    color:var(--muted);
+  }
+  .topbar .room-tag{color:var(--gold); font-weight:600; letter-spacing:.03em;}
+  .topbar .actions{display:flex; gap:8px;}
+
+  .board-wrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:14px 16px 0;
+    gap:10px;
+    max-width:1100px;
+    margin:0 auto;
+    width:100%;
+  }
+
+  .player-strip{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background:var(--panel);
+    border:1px solid var(--zone-border);
+    border-radius:4px;
+    padding:8px 14px;
+  }
+  .player-strip.active{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+  .player-name{font-weight:700; font-size:14px;}
+  .player-name.you{color:var(--gold-bright);}
+  .lp-block{display:flex; align-items:center; gap:8px;}
+  .lp-num{font-family:'Cinzel',serif; font-size:22px; font-weight:600; min-width:70px; text-align:center;}
+  .lp-btn{
+    width:26px;height:26px;border-radius:50%;
+    border:1px solid var(--zone-border); background:var(--panel-light);
+    color:var(--parchment); cursor:pointer; font-size:15px; line-height:1;
+  }
+  .lp-btn:hover{border-color:var(--gold);}
+  .lp-btn.wide{
+    width:auto; min-width:38px; height:26px; border-radius:13px;
+    padding:0 8px; font-size:12px; white-space:nowrap;
+  }
+  .meta-pill{
+    font-size:11px; color:var(--muted); background:var(--bg-deep);
+    border:1px solid var(--zone-border); border-radius:20px; padding:3px 10px;
+    white-space:nowrap;
+  }
+  .meta-pill.ok{border-color:var(--ok); color:var(--ok);}
+  .meta-pill.warn{border-color:var(--ember); color:#f0a89e;}
+  .meta-pills{display:flex; gap:6px; flex-wrap:wrap;}
+
+  .zone-row{display:flex; gap:6px; justify-content:center; flex-wrap:wrap;}
+  .zone{
+    width:64px;height:88px;
+    background:var(--bg-deep);
+    border:1px solid var(--zone-border);
+    border-radius:3px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative; cursor:pointer;
+    overflow:hidden;
+    flex-shrink:0;
+    transition:border-color .12s, transform .12s;
+  }
+  .zone:hover{border-color:var(--violet); transform:translateY(-2px);}
+  .zone img{
+    position:absolute; top:50%; left:50%;
+    width:100%; height:100%;
+    transform:translate(-50%,-50%);
+    object-fit:cover;
+  }
+  /* Defense position (face-up OR face-down): the diagnostic proved the
+     rotation math itself was correct (getComputedStyle confirmed a real
+     matrix(0,1,-1,0,0,0) = 90deg) — the actual mistake was keeping the
+     ZONE's own outer box the same portrait shape for both Attack and
+     Defense, so only the artwork inside a fixed frame was rotating. Real
+     Yu-Gi-Oh clients turn the whole card outline landscape for Defense —
+     the outer box needs to visibly change shape, not just its contents.
+     Fix: the zone itself goes landscape (88x64) for ANY Defense card, and
+     the image inside keeps its NORMAL portrait dimensions (64x88, matching
+     an upright zone) before rotating into that new landscape footprint. */
+  .zone.def{ width:88px; height:64px; }
+  .zone.def img{
+    width:64px; height:88px;
+    margin-top:-44px; margin-left:-32px;
+    transform:rotate(90deg);
+  }
+  .zone .label{font-size:9px; color:var(--muted); text-align:center; padding:2px;}
+  .zone.facedown{
+    background:
+      repeating-linear-gradient(45deg, rgba(228,201,118,.07) 0 6px, transparent 6px 12px),
+      radial-gradient(circle at 50% 42%, var(--violet-soft) 0%, var(--bg-deep) 78%);
+  }
+  .zone.facedown::before{
+    content:"";
+    position:absolute; inset:6px;
+    border:1px solid rgba(228,201,118,.35);
+    border-radius:2px;
+  }
+  /* A face-down monster is conventionally Set in (implied) Defense Position,
+     shown sideways — a face-down Spell/Trap has no attack/defense concept
+     and stays upright. Which shape applies is inferred from which kind of
+     zone the card is sitting in (monster vs spell/trap), not from any stored
+     position — a face-down card never actually has one. */
+  /* (sizing now handled by the general .zone.def rule above — this class
+     combination just needs the facedown background/glyph styling, which is
+     already covered by .zone.facedown above) */
+  .zone.facedown::after{content:"❖"; font-family:'Cinzel',serif; font-size:20px; color:var(--gold-bright); opacity:.55;}
+
+  /* Card-type accent: a thin colored edge grounded in the real TCG frame
+     colors (Spell=green, Trap=magenta) rather than an arbitrary decoration. */
+  .zone.type-spell{box-shadow:inset 0 0 0 1px var(--ok);}
+  .zone.type-trap{box-shadow:inset 0 0 0 1px var(--magenta);}
+
+  /* ATK/DEF badge on face-up monsters — ATK in a warm ember tone, DEF in a
+     cool azure tone, matching the two stats' real-card color convention. */
+  .stat-badge{
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; font-size:9px; font-weight:600; line-height:1.5;
+    text-shadow:0 1px 2px rgba(0,0,0,.9);
+    pointer-events:none;
+  }
+  .stat-badge span{flex:1; text-align:center;}
+  .stat-badge .atk{color:#ffb199; background:rgba(20,10,10,.55);}
+  .stat-badge .def{color:#a8d4ff; background:rgba(10,16,24,.55);}
+  /* Defense zones are already landscape-shaped (see .zone.def above), so the
+     stat badge's normal bottom-aligned position already sits correctly —
+     no rotation/repositioning needed here anymore. (This rule used to
+     compensate for rotating the image inside a fixed-shape frame, which is
+     no longer how Defense position is rendered.) */
+
+  .token-placeholder{
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:10px; padding:4px; color:var(--gold-bright);
+    background:radial-gradient(circle at 50% 40%, var(--violet-soft), var(--bg-deep));
+  }
+  /* Equip badges are real appended elements (not a CSS pseudo-element)
+     because each equip RELATIONSHIP gets its own color — every card
+     equipped to the same target, plus the target itself, share one color;
+     a different target gets a different color — so the color has to be set
+     dynamically per-badge, which a static ::before rule can't do. */
+  .equip-badge{
+    position:absolute; top:2px; right:2px; z-index:3;
+    width:14px; height:14px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; color:#111; box-shadow:0 1px 3px rgba(0,0,0,.6);
+  }
+  .equip-info{
+    font-size:12px; color:var(--parchment); margin-bottom:6px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .equip-info .chain-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:50%; flex-shrink:0;
+    color:#111; font-size:10px;
+  }
+  .equip-info .counter-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border-radius:50%; flex-shrink:0;
+    background:var(--violet); color:#fff; font-size:10px;
+  }
+  /* Negated effect — dims the card and marks it, mirroring how a card with
+     a negated effect is commonly shown as "shut off" in digital clients. */
+  .zone.negated img{ filter:grayscale(75%) brightness(.55); }
+  .zone.negated::before{
+    content:"NO EFFECT"; position:absolute; top:2px; left:2px; z-index:2;
+    font-size:7px; font-weight:700; letter-spacing:.03em;
+    color:#ffb199; background:rgba(30,10,10,.75); padding:1px 3px; border-radius:2px;
+  }
+  .counter-badge{
+    position:absolute; top:2px; left:50%; transform:translateX(-50%); z-index:3;
+    background:var(--violet); color:#fff; font-size:9px; font-weight:700;
+    min-width:14px; height:14px; border-radius:7px; padding:0 3px;
+    display:flex; align-items:center; justify-content:center;
+    text-shadow:none;
+  }
+  .zone.drag-over{border-color:var(--gold-bright); box-shadow:0 0 0 2px var(--gold-bright) inset;}
+
+  .quick-popover{
+    position:fixed; z-index:400; display:none; flex-direction:column; gap:4px;
+    background:var(--panel); border:1px solid var(--gold); border-radius:6px;
+    padding:6px; box-shadow:0 6px 20px rgba(0,0,0,.55);
+  }
+  .quick-popover button{white-space:nowrap;}
+
+  .hover-preview{
+    position:fixed; z-index:350; display:none;
+    width:180px; border-radius:8px; overflow:hidden;
+    border:1px solid var(--gold); box-shadow:0 8px 24px rgba(0,0,0,.6);
+    pointer-events:none;
+  }
+  .hover-preview img{width:100%; display:block;}
+  .zone.emz{border-style:dashed; border-color:var(--zone-border-active); opacity:.85;}
+  .zone.field-zone{width:52px;}
+
+  .pile-row{display:flex; gap:8px; align-items:center;}
+  .pile{
+    width:44px;height:60px;
+    background:var(--panel-light);
+    border:1px solid var(--zone-border);
+    border-radius:3px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:10px; color:var(--muted); cursor:pointer;
+    text-align:center; line-height:1.3; padding:2px;
+    flex-shrink:0;
+  }
+  .pile:hover{border-color:var(--gold);}
+  .pile .count{font-family:'Cinzel',serif; font-size:15px; color:var(--parchment);}
+
+  .mid-strip{display:flex; align-items:center; justify-content:center; gap:24px; padding:4px 0;}
+
+  .hand-area{
+    background:var(--panel);
+    border:1px solid var(--zone-border);
+    border-radius:4px;
+    padding:10px 14px;
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    min-height:100px;
+  }
+  .hand-label{font-size:11px; color:var(--muted); margin-right:6px;}
+  .hand-card{
+    width:58px;height:82px;
+    border-radius:3px; overflow:hidden; cursor:grab;
+    border:1px solid var(--zone-border);
+    flex-shrink:0;
+    transition:transform .12s;
+  }
+  .hand-card:active{cursor:grabbing;}
+  .hand-card:hover{transform:translateY(-6px); border-color:var(--gold);}
+  .hand-card img{width:100%; height:100%; object-fit:cover;}
+  .hand-empty{color:var(--muted); font-size:13px; font-style:italic;}
+
+  .turn-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg-deep); border-top:1px solid var(--zone-border);
+    padding:12px 18px; margin-top:10px; flex-wrap:wrap; gap:10px;
+  }
+  .turn-info{font-size:14px;}
+  .turn-info b{color:var(--gold-bright);}
+  .phase-track{display:flex; gap:4px;}
+  .phase-chip{
+    font-size:11px; padding:5px 9px; border-radius:20px;
+    background:var(--panel-light); color:var(--muted); border:1px solid transparent;
+  }
+  .phase-chip.on{color:var(--bg-deep); background:var(--gold-bright); font-weight:700;}
+  .turn-actions{display:flex; gap:8px;}
+
+  .log-panel{
+    background:var(--panel); border:1px solid var(--zone-border); border-radius:4px;
+    padding:10px 14px; max-height:110px; overflow-y:auto; font-size:12px; color:var(--muted);
+  }
+  .log-panel div{padding:2px 0; border-bottom:1px dashed rgba(255,255,255,.05);}
+  .log-panel div:last-child{border-bottom:none;}
+
+  /* ---------- Collection / Decks shared page layout ---------- */
+  .page-wrap{max-width:880px; margin:0 auto; padding:26px 18px 70px;}
+  .sub-note{color:var(--muted); font-size:13px; line-height:1.5;}
+  .divider{height:1px; background:var(--zone-border); margin:22px 0;}
+  .list-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;}
+  .list-head h3{margin:0; font-size:15px; color:var(--gold-bright);}
+  .search-row{display:flex; gap:8px; margin-bottom:14px;}
+  .search-row input{margin-bottom:0;}
+  .loading-txt, .empty-txt{color:var(--muted); font-size:13px; text-align:center; padding:16px 0;}
+  .results-list{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+  .result-item{display:flex; gap:10px; align-items:center; padding:8px; border:1px solid var(--zone-border); border-radius:3px; background:var(--panel);}
+  .result-item img{width:40px; height:58px; object-fit:cover; border-radius:2px; flex-shrink:0;}
+  .result-item .info{flex:1; min-width:0;}
+  .result-item .info b{display:block; font-size:13px;}
+  .result-item .info span{font-size:11px; color:var(--muted);}
+
+  .card-list{display:flex; flex-direction:column; gap:6px;}
+  .card-row{display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--zone-border); border-radius:4px; padding:8px 12px;}
+  .card-row img{width:40px; height:58px; object-fit:cover; border-radius:2px; flex-shrink:0; cursor:pointer;}
+  .card-row-info{flex:1; min-width:0;}
+  .card-row-info b{display:block; font-size:13px;}
+  .card-row-info span{font-size:11px; color:var(--muted);}
+  .card-row-info .owned-note{font-size:11px; margin-left:6px;}
+  .qty-stepper{display:flex; align-items:center; gap:6px; font-family:'Cinzel',serif;}
+
+  .deck-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;}
+  .deck-card{background:var(--panel); border:1px solid var(--zone-border); border-radius:4px; padding:14px;}
+  .deck-card-name{font-weight:700; font-size:15px; margin-bottom:8px;}
+
+  .deck-summary-bar{display:flex; gap:8px; margin:14px 0; flex-wrap:wrap;}
+  .deck-section{margin-top:22px;}
+  .deck-section h3{font-size:14px; color:var(--gold-bright); margin-bottom:8px;}
+  .deck-msg{font-size:13px; color:#f0a89e; min-height:18px; margin:6px 0;}
+  #newDeckRow{display:none;}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,8,15,.75);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:16px;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--panel); border:1px solid var(--zone-border); border-radius:6px;
+    width:100%; max-width:520px; max-height:82vh; display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .modal-head{display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--zone-border);}
+  .modal-head h3{margin:0; font-size:16px; color:var(--gold-bright);}
+  .modal-close{background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer;}
+  .modal-body{padding:16px 18px; overflow-y:auto;}
+  .action-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px;}
+  .zoom-img{width:100%; border-radius:6px; margin-bottom:12px;}
+  .zoom-effect{font-size:13px; color:var(--muted); line-height:1.5; white-space:pre-wrap;}
+
+  @media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+  @media (max-width:720px){
+    .zone{width:52px; height:72px;}
+    .zone.def{width:72px; height:52px;}
+    .zone.def img{width:52px; height:72px; margin-top:-36px; margin-left:-26px;}
+    .lp-num{font-size:18px;}
+  }
+</style>
 </head>
 <body>
-  <h1>Duel Arena — Engine Load Test (Milestone 1)</h1>
-  <pre id="output">Loading engine…</pre>
-  <script type="module" src="/src/main.js"></script>
+
+<div class="navbar">
+  <div class="nav-brand">Duel Arena</div>
+  <div class="nav-tabs">
+    <button class="navbtn active" data-view="duel">Duel</button>
+    <button class="navbtn" data-view="collection">Collection</button>
+    <button class="navbtn" data-view="decks">Decks</button>
+  </div>
+</div>
+
+<!-- ===================== DUEL TAB ===================== -->
+<div id="view-duel" class="app-view">
+
+  <div id="landing">
+    <div class="gate">
+      <div class="eyebrow">DUEL ARENA</div>
+      <h1>Enter the Duel</h1>
+      <p class="sub">A shared board for you and one opponent. Life points, zones, and the graveyard are visible to both of you — your hand stays yours until you play it.</p>
+
+      <div class="card-panel">
+        <h3>Your name</h3>
+        <input type="text" id="nameInput" placeholder="e.g. Jordan" maxlength="20">
+        <h3>Start a new duel</h3>
+        <label>Duel mode</label>
+        <div class="row" style="margin-bottom:14px;">
+          <button class="btn" id="modeManualBtn" data-mode="manual" style="flex:1;">Manual</button>
+          <button class="btn" id="modeAutoBtn" data-mode="automated" style="flex:1;">Automated</button>
+        </div>
+        <div id="ruleEraRow">
+          <label>Rule era (Manual mode only — Automated always runs current rules)</label>
+          <div class="row" style="margin-bottom:14px;">
+            <button class="btn" id="ruleEraPreLinkBtn" data-era="prelink" style="flex:1;">Pre-Link (5 shared zones)</button>
+            <button class="btn" id="ruleEraLinkBtn" data-era="linkera" style="flex:1;">Link Era (current, w/ EMZ)</button>
+          </div>
+          <p class="sub-note" style="margin:-8px 0 14px;">
+            Pre-Link plays like the game did before Master Rule 4: 5 Monster Zones and 5 Spell/Trap Zones
+            per player, no Extra Monster Zone, and Extra Deck monsters can go in any of your 5 Monster
+            Zones without needing a Link Monster to unlock the slot. Link Monsters can still be played in
+            this mode — they just don't gate anything. Defaults to Pre-Link since that's usually less
+            annoying for casual play; switch to Link Era if you want the modern zone restriction.
+          </p>
+        </div>
+        <button class="btn btn-primary btn-block" id="hostBtn">Create duel</button>
+      </div>
+
+      <div class="card-panel">
+        <h3>Join a duel</h3>
+        <label for="codeInput">Duel code</label>
+        <input type="text" id="codeInput" placeholder="e.g. F7QK2" maxlength="8" style="text-transform:uppercase;">
+        <button class="btn btn-primary btn-block" id="joinBtn">Join duel</button>
+      </div>
+
+      <div class="err-msg" id="landingErr"></div>
+      <p class="foot-note">Card data is pulled live from the public YGOPRODeck database. If a lookup ever fails, you can still track LP, zones, and the graveyard by hand — the board doesn't depend on it.</p>
+    </div>
+  </div>
+
+  <div id="duel">
+    <div class="topbar">
+      <div>Duel code: <span class="room-tag" id="roomTagLabel">-----</span> &nbsp; <span class="meta-pill" id="modeBadge">Manual</span> &nbsp; <span class="meta-pill" id="ruleEraBadge" style="display:none;">Pre-Link</span></div>
+      <div class="actions">
+        <button class="btn small" id="rollBtn">Coin / dice</button>
+        <button class="btn small btn-danger" id="leaveBtn">Leave duel</button>
+      </div>
+    </div>
+
+    <div class="page-wrap" id="autoDuelPanel" style="display:none; max-width:700px;">
+      <div class="card-panel">
+        <h3>Automated duel</h3>
+        <p class="sub-note" style="margin:0 0 14px;">
+          The real Yu-Gi-Oh rules engine plays this out — real cards, real effects, real win
+          conditions. Right now only the duel's host can start it, using two of your saved decks
+          (or the built-in test decks if you haven't picked any). Everyone in the duel sees the
+          same play-by-play log once it finishes.
+        </p>
+        <div id="autoDeckPickers" class="row" style="gap:10px; margin-bottom:14px;"></div>
+        <div class="row" style="gap:10px;">
+          <button class="btn btn-primary" id="startAutoDuelBtn" style="flex:1;">Quick simulate (bot vs bot)</button>
+          <button class="btn btn-primary" id="startNpcDuelBtn" style="flex:1;">Play vs NPC</button>
+        </div>
+        <div class="log-panel" id="autoLogPanel" style="max-height:320px; margin-top:14px;"></div>
+        <div id="liveDuelBoard" style="display:none; margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="board-wrap" id="manualBoardWrap">
+      <div class="player-strip" id="oppStrip">
+        <div>
+          <div class="player-name" id="oppName">Waiting for opponent…</div>
+          <div class="meta-pills">
+            <span class="meta-pill" id="oppHandCount">Hand 0</span>
+            <span class="meta-pill" id="oppDeckCount">Deck 0</span>
+            <span class="meta-pill" id="oppExtraCount">Extra 0</span>
+          </div>
+        </div>
+        <div class="lp-block"><span class="lp-num" id="oppLP">8000</span></div>
+      </div>
+
+      <div class="row" style="justify-content:center; gap:20px;"><div class="pile-row" id="oppPiles"></div></div>
+      <div class="zone-row" id="oppSpellRow"></div>
+      <div class="zone-row" id="oppMonsterRow"></div>
+
+      <div class="mid-strip" id="emzStrip"><div class="zone-row" id="emzRow"></div></div>
+
+      <div class="zone-row" id="youMonsterRow"></div>
+      <div class="zone-row" id="youSpellRow"></div>
+      <div class="row" style="justify-content:center; gap:20px;"><div class="pile-row" id="youPiles"></div></div>
+
+      <div class="player-strip" id="youStrip">
+        <div>
+          <div class="player-name you" id="youName">You</div>
+          <div class="meta-pills">
+            <span class="meta-pill" id="youHandCount">Hand 0</span>
+            <span class="meta-pill">Deck <span id="youDeckCount">0</span>
+              <button class="lp-btn" style="width:18px;height:18px;font-size:11px;" id="deckMinus">−</button>
+              <button class="lp-btn" style="width:18px;height:18px;font-size:11px;" id="deckPlus">+</button>
+            </span>
+            <span class="meta-pill">Extra <span id="youExtraCount">0</span>
+              <button class="lp-btn" style="width:18px;height:18px;font-size:11px;" id="extraMinus">−</button>
+              <button class="lp-btn" style="width:18px;height:18px;font-size:11px;" id="extraPlus">+</button>
+            </span>
+          </div>
+        </div>
+        <div class="lp-block">
+          <button class="lp-btn wide" id="lpMinus100">−100</button>
+          <button class="lp-btn wide" id="lpMinus">−50</button>
+          <span class="lp-num" id="youLP">8000</span>
+          <button class="lp-btn wide" id="lpPlus">+50</button>
+          <button class="lp-btn wide" id="lpPlus100">+100</button>
+        </div>
+        <div class="lp-block" style="margin-top:6px;">
+          <input type="number" id="lpCustomInput" placeholder="e.g. 1750" style="width:90px; padding:5px 8px; background:var(--bg-deep); border:1px solid var(--zone-border); color:var(--parchment); border-radius:4px; font-size:12px;">
+          <button class="lp-btn wide" id="lpCustomMinus" title="Subtract this amount">− Apply</button>
+          <button class="lp-btn wide" id="lpCustomPlus" title="Add this amount">+ Apply</button>
+        </div>
+      </div>
+
+      <div class="hand-area" id="handArea">
+        <span class="hand-label">Your hand</span>
+        <span class="hand-empty" id="handEmptyMsg">Nothing in hand — use "Add card" below to draw or search.</span>
+      </div>
+
+      <div class="row" style="justify-content:center; gap:10px;">
+        <button class="btn btn-primary" id="addCardBtn">Add card (search / draw)</button>
+        <button class="btn" id="createTokenBtn">Create Token</button>
+      </div>
+
+      <div class="log-panel" id="logPanel"></div>
+    </div>
+
+    <div class="turn-bar">
+      <div class="turn-info">Turn <b id="turnNum">1</b> — <b id="turnWhose">-</b></div>
+      <div class="phase-track" id="phaseTrack"></div>
+      <div class="turn-actions"><button class="btn" id="passTurnBtn">Pass turn</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COLLECTION TAB ===================== -->
+<div id="view-collection" class="app-view">
+  <div class="page-wrap">
+    <h2 class="display">My Collection</h2>
+    <p class="sub-note">Cards you actually own. Add them once — your decks will flag whether you have enough copies for what you've built.</p>
+
+    <div class="search-row">
+      <input type="text" id="collSearchInput" placeholder="Search for a card, e.g. Pot of Greed">
+      <button class="btn btn-primary" id="collSearchBtn">Search</button>
+    </div>
+    <div id="collSearchResults"></div>
+
+    <div class="divider"></div>
+
+    <div class="list-head">
+      <h3>Owned cards (<span id="collCount">0</span> unique)</h3>
+      <button class="btn btn-danger small" id="clearCollectionBtn">Clear all</button>
+    </div>
+    <div id="collectionList" class="card-list"></div>
+  </div>
+</div>
+
+<!-- ===================== DECKS TAB ===================== -->
+<div id="view-decks" class="app-view">
+
+  <div class="page-wrap" id="decksListPage">
+    <h2 class="display">My Decks</h2>
+    <div class="list-head">
+      <p class="sub-note" style="margin:0;">Standard limits: 40–60 Main, up to 15 Extra, up to 15 Side. Max 3 copies of any card by name across all three.</p>
+      <button class="btn btn-primary" id="newDeckBtn">+ New deck</button>
+    </div>
+    <div class="row" id="newDeckRow">
+      <input type="text" id="newDeckNameInput" placeholder="Deck name">
+      <button class="btn btn-primary small" id="createDeckConfirmBtn">Create</button>
+      <button class="btn small" id="createDeckCancelBtn">Cancel</button>
+    </div>
+    <div id="decksList" class="deck-grid"></div>
+  </div>
+
+  <div class="page-wrap" id="deckEditorPage" style="display:none;">
+    <button class="btn small" id="backToDecksBtn">&larr; Back to decks</button>
+    <div class="row" style="align-items:center; gap:10px; margin:14px 0 4px;">
+      <input type="text" id="deckNameInput" style="max-width:280px; margin-bottom:0;">
+      <button class="btn small" id="renameDeckBtn">Save name</button>
+      <button class="btn small btn-danger" id="deleteDeckBtn">Delete deck</button>
+    </div>
+    <div class="deck-summary-bar" id="deckSummaryBar"></div>
+    <div class="deck-msg" id="deckMsg"></div>
+
+    <div class="search-row">
+      <input type="text" id="deckSearchInput" placeholder="Search for a card to add">
+      <button class="btn btn-primary" id="deckSearchBtn">Search</button>
+    </div>
+    <div id="deckSearchResults"></div>
+
+    <div class="deck-section">
+      <h3>Main Deck (<span id="mainCount">0</span>)</h3>
+      <div id="mainList" class="card-list"></div>
+    </div>
+    <div class="deck-section">
+      <h3>Extra Deck (<span id="extraCount">0</span>)</h3>
+      <div id="extraList" class="card-list"></div>
+    </div>
+    <div class="deck-section">
+      <h3>Side Deck (<span id="sideCount">0</span>)</h3>
+      <div id="sideList" class="card-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ZONE / HAND / DETAIL MODAL ===================== -->
+<div class="overlay" id="cardModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="cardModalTitle">Card</h3>
+      <button class="modal-close" id="closeCardModal">×</button>
+    </div>
+    <div class="modal-body" id="cardModalBody"></div>
+  </div>
+</div>
+
+<script type="module">
+  "use strict";
+
+  // Real deployed site now (GitHub Pages), not a Claude Artifact, so
+  // window.storage doesn't exist here — this Firebase-backed module has the
+  // same get/set(key, value, shared) shape, so nothing below this needed to
+  // change except these two lines.
+  import { safeGet as fbGet, safeSet as fbSet } from "./src/firebaseStorage.js";
+  import { initEngine, startDuel, defaultRespond, getLib } from "./src/duelEngine.js";
+  import { OcgResponseType, SelectIdleCMDAction, SelectBattleCMDAction, OcgPosition, OcgLocation } from "@n1xx1/ocgcore-wasm";
+
+  const API_BASE = "https://db.ygoprodeck.com/api/v7/cardinfo.php";
+  const POLL_MS = 3000;
+  const MONSTER_SLOTS = 5;
+  const ST_SLOTS = 5;
+
+  // ================= shared helpers =================
+  function roomKey(code){ return "duel:" + code; }
+  function handKey(code, seat){ return "duel:" + code + ":hand:" + seat; }
+  function fdKey(code, seat){ return "duel:" + code + ":fd:" + seat; }
+
+  async function safeGet(key, shared){
+    const r = await fbGet(key, shared);
+    return r ? r.value : null;
+  }
+  async function safeSet(key, value, shared){
+    return await fbSet(key, value, shared);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function cardThumb(card){ return card ? (card.image_url_small || card.image || "") : ""; }
+  function isExtraType(type){ return /Fusion|Synchro|XYZ|Link/i.test(type || ""); }
+  function sumQty(arr){ return (arr||[]).reduce((s,c)=>s+c.qty,0); }
+
+  function simplifyCard(c){
+    return {
+      id: c.id,
+      name: c.name,
+      type: c.type,
+      atk: c.atk,
+      def: c.def,
+      desc: c.desc,
+      image_url_small: (c.card_images && c.card_images[0]) ? c.card_images[0].image_url_small : "",
+      image_full: (c.card_images && c.card_images[0]) ? c.card_images[0].image_url : "",
+      position: "attack"
+    };
+  }
+
+  async function searchCardsAPI(query){
+    const url = API_BASE + "?fname=" + encodeURIComponent(query) + "&num=20&offset=0";
+    const res = await fetch(url);
+    if(res.status === 400){
+      // YGOPRODeck's API returns HTTP 400 (not an empty 200) when nothing
+      // matches the search — that's normal "no results," not a real failure.
+      return [];
+    }
+    if(!res.ok) throw new Error("bad response (" + res.status + ")");
+    const data = await res.json();
+    return (data.data || []).map(simplifyCard);
+  }
+
+  // click-twice confirm pattern (no native confirm() dialogs — those can be blocked in sandboxed views)
+  function confirmClick(btn, action){
+    if(btn.dataset.confirm === "1"){
+      action();
+      btn.dataset.confirm = "0";
+    }else{
+      const orig = btn.textContent;
+      btn.dataset.confirm = "1";
+      btn.textContent = "Click again to confirm";
+      setTimeout(()=>{
+        if(btn.dataset.confirm === "1"){ btn.dataset.confirm = "0"; btn.textContent = orig; }
+      }, 3000);
+    }
+  }
+
+  // ================= NAV =================
+  const VIEWS = ["duel","collection","decks"];
+  function showView(name){
+    VIEWS.forEach(v=>{
+      document.getElementById("view-"+v).style.display = (v===name) ? "block" : "none";
+    });
+    document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.getAttribute("data-view")===name));
+  }
+  document.querySelectorAll(".navbtn").forEach(b=> b.addEventListener("click", ()=> showView(b.getAttribute("data-view"))));
+
+  // =====================================================================
+  // ============================ DUEL TAB ==============================
+  // =====================================================================
+  let session = { name:"", roomCode:"", seat:"", ready:false };
+  let currentRoom = null;
+  let myHand = [];
+  let myFaceDown = {};
+  let pollTimer = null;
+  let pendingZoneAction = null;
+  let pendingHandCardIdx = null;
+
+  const PHASES = ["Draw","Standby","Main 1","Battle","Main 2","End"];
+
+  function newCode(){
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let out = "";
+    for(let i=0;i<5;i++) out += chars[Math.floor(Math.random()*chars.length)];
+    return out;
+  }
+
+  function emptyRoom(hostName){
+    const board = {};
+    ["p1","p2"].forEach(seat=>{
+      for(let i=1;i<=MONSTER_SLOTS;i++) board[seat+"-m"+i] = null;
+      for(let i=1;i<=ST_SLOTS;i++) board[seat+"-st"+i] = null;
+      board[seat+"-field"] = null;
+    });
+    board["emz1"] = null;
+    board["emz2"] = null;
+    return {
+      players: { p1: { name: hostName, lp: 8000, handCount: 0, deckCount: 40, extraCount: 0 }, p2: null },
+      board: board,
+      gy: { p1: [], p2: [] },
+      banished: { p1: [], p2: [] },
+      turn: { turnNumber: 1, activeSeat: "p1", phase: "Draw" },
+      log: [ hostName + " opened the duel." ],
+      mode: hostMode,
+      ruleEra: hostRuleEra,
+      updatedAt: Date.now()
+    };
+  }
+
+  const landingErr = document.getElementById("landingErr");
+  function showLandingErr(msg){ landingErr.textContent = msg; }
+
+  let hostMode = "manual";
+  let hostRuleEra = "linkera";
+  function setHostMode(mode){
+    hostMode = mode;
+    document.getElementById("modeManualBtn").classList.toggle("btn-primary", mode === "manual");
+    document.getElementById("modeAutoBtn").classList.toggle("btn-primary", mode === "automated");
+    document.getElementById("ruleEraRow").style.display = "none"; // hidden for now per user preference — logic stays in place if this gets revisited
+  }
+  function setHostRuleEra(era){
+    hostRuleEra = era;
+    document.getElementById("ruleEraPreLinkBtn").classList.toggle("btn-primary", era === "prelink");
+    document.getElementById("ruleEraLinkBtn").classList.toggle("btn-primary", era === "linkera");
+  }
+  setHostMode("manual");
+  setHostRuleEra("linkera");
+  document.getElementById("modeManualBtn").addEventListener("click", ()=> setHostMode("manual"));
+  document.getElementById("modeAutoBtn").addEventListener("click", ()=> setHostMode("automated"));
+  document.getElementById("ruleEraPreLinkBtn").addEventListener("click", ()=> setHostRuleEra("prelink"));
+  document.getElementById("ruleEraLinkBtn").addEventListener("click", ()=> setHostRuleEra("linkera"));
+
+  document.getElementById("hostBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("nameInput").value.trim();
+    if(!name){ showLandingErr("Enter your name first."); return; }
+    showLandingErr("");
+    const code = newCode();
+    const room = emptyRoom(name);
+    const ok = await safeSet(roomKey(code), JSON.stringify(room), true);
+    if(!ok){ showLandingErr("Couldn't create the duel — check your connection and try again."); return; }
+    session = { name, roomCode: code, seat: "p1", ready: true };
+    enterDuel();
+  });
+
+  document.getElementById("joinBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("nameInput").value.trim();
+    const code = document.getElementById("codeInput").value.trim().toUpperCase();
+    if(!name){ showLandingErr("Enter your name first."); return; }
+    if(!code){ showLandingErr("Enter a duel code."); return; }
+    showLandingErr("");
+    const raw = await safeGet(roomKey(code), true);
+    if(!raw){ showLandingErr("No duel found with that code."); return; }
+    let room;
+    try{ room = JSON.parse(raw); }catch(e){ showLandingErr("That duel's data looks corrupted."); return; }
+
+    let seat = null;
+    if(room.players.p1 && room.players.p1.name === name) seat = "p1";
+    else if(room.players.p2 && room.players.p2.name === name) seat = "p2";
+    else if(!room.players.p2) seat = "p2";
+    else { showLandingErr("This duel already has two duelists."); return; }
+
+    if(seat === "p2" && !room.players.p2){
+      room.players.p2 = { name, lp:8000, handCount:0, deckCount:40, extraCount:0 };
+      room.log.push(name + " joined the duel.");
+      room.updatedAt = Date.now();
+      await safeSet(roomKey(code), JSON.stringify(room), true);
+    }
+    session = { name, roomCode: code, seat, ready:true };
+    enterDuel();
+  });
+
+  async function enterDuel(){
+    document.getElementById("landing").style.display = "none";
+    document.getElementById("duel").style.display = "flex";
+    document.getElementById("roomTagLabel").textContent = session.roomCode;
+    document.getElementById("modeBadge").textContent = "Manual";
+
+    myHand = JSON.parse((await safeGet(handKey(session.roomCode, session.seat), false)) || "[]");
+    myFaceDown = JSON.parse((await safeGet(fdKey(session.roomCode, session.seat), false)) || "{}");
+
+    await tick();
+    pollTimer = setInterval(tick, POLL_MS);
+  }
+
+  document.getElementById("leaveBtn").addEventListener("click", ()=>{
+    if(pollTimer) clearInterval(pollTimer);
+    document.getElementById("duel").style.display = "none";
+    document.getElementById("landing").style.display = "flex";
+  });
+
+  async function saveHand(){ await safeSet(handKey(session.roomCode, session.seat), JSON.stringify(myHand), false); }
+  async function saveFaceDown(){ await safeSet(fdKey(session.roomCode, session.seat), JSON.stringify(myFaceDown), false); }
+
+  async function loadRoom(){
+    const raw = await safeGet(roomKey(session.roomCode), true);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); }catch(e){ return null; }
+  }
+  async function saveRoom(room){
+    room.updatedAt = Date.now();
+    await safeSet(roomKey(session.roomCode), JSON.stringify(room), true);
+  }
+
+  async function tick(){
+    const room = await loadRoom();
+    if(!room) return;
+    currentRoom = room;
+    if(room.players[session.seat] && room.players[session.seat].handCount !== myHand.length){
+      room.players[session.seat].handCount = myHand.length;
+      await saveRoom(room);
+    }
+    renderDuel();
+  }
+
+  function mySeat(){ return session.seat; }
+  function oppSeat(){ return session.seat === "p1" ? "p2" : "p1"; }
+
+  function renderDuel(){
+    if(!currentRoom) return;
+    const room = currentRoom;
+
+    const isAuto = room.mode === "automated";
+    document.getElementById("autoDuelPanel").style.display = isAuto ? "block" : "none";
+    document.getElementById("manualBoardWrap").style.display = isAuto ? "none" : "flex";
+    document.getElementById("modeBadge").textContent = isAuto ? "Automated" : "Manual";
+    const eraBadge = document.getElementById("ruleEraBadge");
+    if(isAuto){
+      eraBadge.style.display = "none";
+      renderAutoDuelPanel(room);
+      return;
+    }
+    const era = room.ruleEra || "prelink"; // rooms created before this feature default to Pre-Link
+    document.getElementById("emzStrip").style.display = era === "linkera" ? "flex" : "none";
+    eraBadge.style.display = "inline-block";
+    eraBadge.textContent = era === "linkera" ? "Link Era" : "Pre-Link";
+
+    const me = room.players[mySeat()] || { name: session.name, lp:8000, handCount:0, deckCount:0, extraCount:0 };
+    const opp = room.players[oppSeat()];
+
+    document.getElementById("youName").textContent = me.name + " (you)";
+    document.getElementById("youLP").textContent = me.lp;
+    document.getElementById("youHandCount").textContent = "Hand " + myHand.length;
+    document.getElementById("youDeckCount").textContent = me.deckCount;
+    document.getElementById("youExtraCount").textContent = me.extraCount;
+
+    document.getElementById("oppName").textContent = opp ? opp.name : "Waiting for opponent…";
+    document.getElementById("oppLP").textContent = opp ? opp.lp : "-";
+    document.getElementById("oppHandCount").textContent = "Hand " + (opp ? opp.handCount : 0);
+    document.getElementById("oppDeckCount").textContent = "Deck " + (opp ? opp.deckCount : 0);
+    document.getElementById("oppExtraCount").textContent = "Extra " + (opp ? opp.extraCount : 0);
+
+    const activeIsMe = room.turn.activeSeat === mySeat();
+    document.getElementById("youStrip").classList.toggle("active", activeIsMe);
+    document.getElementById("oppStrip").classList.toggle("active", !activeIsMe);
+    document.getElementById("turnNum").textContent = room.turn.turnNumber;
+    document.getElementById("turnWhose").textContent = activeIsMe ? "your turn" : (opp ? opp.name + "'s turn" : "-");
+
+    const track = document.getElementById("phaseTrack");
+    track.innerHTML = "";
+    PHASES.forEach(p=>{
+      const chip = document.createElement("div");
+      chip.className = "phase-chip" + (p===room.turn.phase ? " on":"");
+      chip.textContent = p;
+      chip.style.cursor = activeIsMe ? "pointer":"default";
+      if(activeIsMe){
+        chip.addEventListener("click", async ()=>{
+          room.turn.phase = p;
+          room.log.push(me.name + " moved to " + p + " Phase.");
+          await saveRoom(room);
+          tick();
+        });
+      }
+      track.appendChild(chip);
+    });
+
+    renderZoneRow("youMonsterRow", mySeat(), "m", MONSTER_SLOTS, false);
+    renderZoneRow("youSpellRow", mySeat(), "st", ST_SLOTS, true);
+    renderZoneRow("oppMonsterRow", oppSeat(), "m", MONSTER_SLOTS, false);
+    renderZoneRow("oppSpellRow", oppSeat(), "st", ST_SLOTS, true);
+    renderEmz();
+    renderPiles("youPiles", mySeat());
+    renderPiles("oppPiles", oppSeat());
+    renderHand();
+    renderLog(room.log);
+  }
+
+  // =====================================================================
+  // ========================= AUTOMATED MODE ============================
+  // =====================================================================
+  // First pass, deliberately scoped: the HOST's browser runs the real engine
+  // locally (both decks, full duel, start to finish) and posts a summary +
+  // winner into the shared room log for the other player to see. This is
+  // NOT yet a live networked duel where each player makes their own choices
+  // from their own browser — that needs the engine's respondFn hooked to
+  // real UI input instead of the built-in bot, plus a way to sync mid-duel
+  // engine state between two browsers. Both are real follow-up work, not
+  // done here. What IS real: the actual card data, actual Lua effect
+  // scripts, and actual rules engine — same one proven across Milestones 1-5.
+  let engineInitPromise = null;
+  function ensureEngineInit(){
+    if(!engineInitPromise){
+      engineInitPromise = initEngine({ onLog: (l)=> console.log("[engine]", l) });
+    }
+    return engineInitPromise;
+  }
+
+  function deckToEngineList(deck){
+    // Deck Builder stores individual card entries with qty already tracked
+    // per entry (see addCardToDeck/adjustDeckCardQty) — card.id is the real
+    // YGOPRODeck passcode, which is exactly what the engine's cardReader
+    // expects as `code`.
+    return (deck.main || []).map(c => ({ code: Number(c.id), qty: c.qty }));
+  }
+
+  const TEST_DECK_P0 = [
+    { code: 89631133, qty: 3 }, { code: 79814787, qty: 3 }, { code: 8240199, qty: 2 },
+    { code: 88241506, qty: 2 }, { code: 45467446, qty: 2 }, { code: 38120068, qty: 2 },
+    { code: 39701395, qty: 2 }, { code: 48800175, qty: 2 }, { code: 6853254, qty: 2 },
+  ];
+  const TEST_DECK_P1 = [
+    { code: 79126789, qty: 2 }, { code: 32619583, qty: 2 }, { code: 78004197, qty: 2 },
+    { code: 33731070, qty: 2 }, { code: 60228941, qty: 2 }, { code: 34230233, qty: 2 },
+    { code: 33017655, qty: 2 }, { code: 74117290, qty: 2 }, { code: 93554166, qty: 2 },
+    { code: 31550470, qty: 2 },
+  ];
+
+  function renderAutoDuelPanel(room){
+    const pickerBox = document.getElementById("autoDeckPickers");
+    const isHost = mySeat() === "p1";
+    const startBtn = document.getElementById("startAutoDuelBtn");
+
+    if(!isHost){
+      pickerBox.innerHTML = '<div class="empty-txt">Waiting for the host to start the automated duel — the result will appear below.</div>';
+      startBtn.style.display = "none";
+    } else {
+      startBtn.style.display = "block";
+      if(!pickerBox.dataset.built){
+        const options = decks.length
+          ? decks.map(d=>'<option value="'+d.id+'">'+escapeHtml(d.name)+' ('+sumQty(d.main)+' main)</option>').join("")
+          : "";
+        const fallback = '<option value="">Built-in test deck</option>';
+        pickerBox.innerHTML =
+          '<div style="flex:1;"><label>Your deck</label><select id="autoDeckP0" style="width:100%;padding:8px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:3px;">'+fallback+options+'</select></div>' +
+          '<div style="flex:1;"><label>Opponent deck</label><select id="autoDeckP1" style="width:100%;padding:8px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:3px;">'+fallback+options+'</select></div>';
+        pickerBox.dataset.built = "1";
+      }
+    }
+
+    if(room.autoResult && !isHost){
+      const el = document.getElementById("autoLogPanel");
+      if(!el.dataset.finalShown){
+        el.innerHTML = '<div><b>' + escapeHtml(room.autoResult) + '</b></div>' + el.innerHTML;
+        el.dataset.finalShown = "1";
+      }
+    }
+  }
+
+  document.getElementById("startAutoDuelBtn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("startAutoDuelBtn");
+    const logEl = document.getElementById("autoLogPanel");
+    logEl.innerHTML = "";
+    btn.disabled = true;
+    btn.textContent = "Loading engine (first time only, ~10s)…";
+
+    const p0Sel = document.getElementById("autoDeckP0");
+    const p1Sel = document.getElementById("autoDeckP1");
+    const p0Deck = p0Sel && p0Sel.value ? decks.find(d=>d.id===p0Sel.value) : null;
+    const p1Deck = p1Sel && p1Sel.value ? decks.find(d=>d.id===p1Sel.value) : null;
+    const deckP0 = p0Deck ? deckToEngineList(p0Deck) : TEST_DECK_P0;
+    const deckP1 = p1Deck ? deckToEngineList(p1Deck) : TEST_DECK_P1;
+
+    try{
+      await ensureEngineInit();
+      btn.textContent = "Duel running…";
+      const appendLine = (l)=>{
+        console.debug("[auto-duel]", l);
+        if(l.startsWith("[")) return; // raw engine message dump — full detail stays in devtools console, kept out of the UI panel so it's actually readable
+        const d = document.createElement("div");
+        d.textContent = l;
+        logEl.insertBefore(d, logEl.firstChild);
+      };
+      const p0Label = p0Deck ? p0Deck.name : "Built-in test deck (P1 slot)";
+      const p1Label = p1Deck ? p1Deck.name : "Built-in test deck (P2 slot)";
+      const result = await startDuel({ deckP0, deckP1, onLog: appendLine });
+      const summary = result
+        ? ("Automated duel finished — \"" + (result.winner===0?p0Label:p1Label) + "\" won (" + result.reason + ").")
+        : "Automated duel stopped early (safety cap reached).";
+      appendLine(summary);
+
+      const room = await loadRoom();
+      if(room){
+        room.autoResult = summary;
+        room.log.push(summary);
+        await saveRoom(room);
+      }
+    }catch(e){
+      const d = document.createElement("div");
+      d.textContent = "❌ " + (e && e.message ? e.message : String(e));
+      logEl.insertBefore(d, logEl.firstChild);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Quick simulate (bot vs bot)";
+      tick();
+    }
+  });
+
+  // =====================================================================
+  // ==================== PLAY VS NPC (live, interactive) ================
+  // =====================================================================
+  // Scope of this first pass: real interactivity for the four decisions
+  // that make up a complete "your turn" — what to play (select_idlecmd),
+  // where to place it (select_place), what position (select_position), and
+  // whether to attack (select_battlecmd). Everything else (chain windows,
+  // yes/no prompts, targeting, tribute costs, and the genuinely rare types
+  // like announcing a card name or rock-paper-scissors) still falls back to
+  // the same bot logic used for the NPC, even on the human's turn — a
+  // known, deliberate gap for this pass, not an oversight.
+
+  function locName(loc){
+    switch(loc){
+      case OcgLocation.DECK: return "deck";
+      case OcgLocation.HAND: return "hand";
+      case OcgLocation.MZONE: return "mzone";
+      case OcgLocation.SZONE: return "szone";
+      case OcgLocation.GRAVE: return "grave";
+      case OcgLocation.REMOVED: return "removed";
+      case OcgLocation.EXTRA: return "extra";
+      case OcgLocation.FZONE: return "field";
+      default: return null;
+    }
+  }
+
+  function createLiveBoardState(){
+    return {
+      lp: [8000, 8000],
+      turnPlayer: 0,
+      phase: null,
+      over: null,
+      zones: {
+        0: { hand:[], mzone:new Array(7).fill(null), szone:new Array(5).fill(null), grave:[], removed:[], deck:0, extra:0, field:null },
+        1: { hand:[], mzone:new Array(7).fill(null), szone:new Array(5).fill(null), grave:[], removed:[], deck:0, extra:0, field:null },
+      },
+    };
+  }
+
+  function liveRemoveAt(state, controller, loc, seq, codeHint){
+    const name = locName(loc);
+    const z = state.zones[controller];
+    if(!name) return { code: codeHint };
+    if(name === "mzone" || name === "szone"){ const c = z[name][seq]; z[name][seq] = null; return c || {code:codeHint}; }
+    if(name === "hand" || name === "grave" || name === "removed"){
+      let idx = z[name].findIndex(c=>c.code===codeHint);
+      if(idx === -1) idx = (seq!=null && seq < z[name].length) ? seq : z[name].length-1;
+      const c = idx>=0 ? z[name].splice(idx,1)[0] : null;
+      return c || {code:codeHint};
+    }
+    if(name === "field"){ const c = z.field; z.field = null; return c || {code:codeHint}; }
+    if(name === "deck"){ z.deck = Math.max(0, z.deck-1); return {code:codeHint}; }
+    if(name === "extra"){ z.extra = Math.max(0, z.extra-1); return {code:codeHint}; }
+    return {code:codeHint};
+  }
+  function livePlaceAt(state, controller, loc, seq, card){
+    const name = locName(loc);
+    const z = state.zones[controller];
+    if(!name) return;
+    if(name === "mzone" || name === "szone"){ z[name][seq] = card; return; }
+    if(name === "hand" || name === "grave" || name === "removed"){ z[name].push(card); return; }
+    if(name === "field"){ z.field = card; return; }
+    if(name === "deck"){ z.deck++; return; }
+    if(name === "extra"){ z.extra++; return; }
+  }
+
+  function applyLiveMessage(state, m, typeName){
+    switch(typeName){
+      case "draw":
+        m.drawn.forEach(d=>{
+          state.zones[m.player].hand.push({ code:d.code, position:d.position });
+          state.zones[m.player].deck = Math.max(0, state.zones[m.player].deck - 1);
+        });
+        break;
+      case "new_turn": state.turnPlayer = m.player; break;
+      case "new_phase": state.phase = m.phase; break;
+      case "damage": state.lp[m.player] = Math.max(0, state.lp[m.player] - m.amount); break;
+      case "move": {
+        const card = liveRemoveAt(state, m.from.controller, m.from.location, m.from.sequence, m.card);
+        card.code = m.card; card.position = m.to.position;
+        livePlaceAt(state, m.to.controller, m.to.location, m.to.sequence, card);
+        break;
+      }
+      case "summoning": case "spsummoning": case "set":
+        livePlaceAt(state, m.controller, m.location, m.sequence, { code:m.code, position:m.position });
+        break;
+      case "pos_change": {
+        // Switching battle position (attack<->defense) doesn't move the
+        // card to a different zone, so it never goes through "move" — this
+        // was a real gap: without it, a position switch never showed up on
+        // the board at all, leaving it visually stuck on the old position.
+        const name = locName(m.location);
+        const z = state.zones[m.controller];
+        if((name === "mzone" || name === "szone") && z[name][m.sequence]) z[name][m.sequence].position = m.position;
+        break;
+      }
+      case "shuffle_hand":
+        state.zones[m.player].hand = m.cards.map(code=>({code, position:OcgPosition.FACEDOWN_ATTACK}));
+        break;
+      case "chaining": state.lastChainingCode = m.code; break;
+      case "chain_end": state.lastChainingCode = null; break;
+      case "win": state.over = { winner: m.player, reason: m.reason }; break;
+      default: break;
+    }
+  }
+
+  function liveCardThumb(cardInfoLookup, code){
+    const info = cardInfoLookup[code];
+    return info ? (info.image_url_small || info.image_full || "") : "";
+  }
+  function liveCardName(cardInfoLookup, code){
+    const info = cardInfoLookup[code];
+    return info ? info.name : ("Card #"+code);
+  }
+
+  // Fetches real name/art for a list of passcodes in one request, so the
+  // live board shows actual cards instead of "Card #12345678" — needed for
+  // the built-in test decks, which (unlike a real saved deck) never carried
+  // name/image data in the first place.
+  // A handful of hardcoded test-deck passcodes were typed by hand rather
+  // than pulled from a real search, and at least one is off by a digit from
+  // the card's real, universal passcode (confirmed: Blue-Eyes White Dragon
+  // is 89631139, not 89631133). The local engine database (cards.cdb) still
+  // resolves the wrong number fine for actual gameplay — that's proven
+  // across many successful test duels — but the live YGOPRODeck API
+  // correctly doesn't recognize it, so it can never get a name/image this
+  // way. This maps known-bad display lookups to their real equivalent
+  // WITHOUT touching the gameplay passcode itself, since changing that
+  // risks regressing engine behavior that already works.
+  const CARD_DISPLAY_ALIASES = { 89631133: 89631139 };
+
+  async function fetchCardsByIds(ids){
+    if(!ids.length) return {};
+    const fetchIds = ids.map(id => CARD_DISPLAY_ALIASES[id] || id);
+    try{
+      const res = await fetch(API_BASE + "?id=" + [...new Set(fetchIds)].join(","));
+      if(!res.ok) return {};
+      const data = await res.json();
+      const byFetchedId = {};
+      (data.data || []).forEach(c=>{ byFetchedId[c.id] = simplifyCard(c); });
+      const out = {};
+      ids.forEach((origId, i)=>{
+        const info = byFetchedId[fetchIds[i]];
+        if(info) out[origId] = info;
+      });
+      return out;
+    }catch(e){ console.warn("Could not fetch card info for live board", e); return {}; }
+  }
+
+  function renderLiveBoard(state, cardInfoLookup, humanIdx, interaction){
+    const npcIdx = humanIdx === 0 ? 1 : 0;
+    const pending = interaction.pending;
+    const canClickCards = pending && (pending.typeName === "select_idlecmd" || pending.typeName === "select_battlecmd");
+    const canClickZones = pending && pending.typeName === "select_place";
+
+    function isZoneEligibleForPlace(location, sequence){
+      let bit;
+      if(location === OcgLocation.MZONE) bit = sequence;
+      else if(location === OcgLocation.FZONE) bit = 7;
+      else if(location === OcgLocation.SZONE) bit = 8+sequence;
+      else return false;
+      return !(pending.msg.field_mask & (1<<bit));
+    }
+
+    function zoneDiv(card, opts, seat, location, sequence){
+      const div = document.createElement("div");
+      div.className = "zone" + (opts && opts.st ? " st" : "");
+      if(card){
+        // Position values are a BITMASK, not a single discrete value — a
+        // face-down Set Spell/Trap has been observed reporting position=10
+        // (FACEDOWN_DEFENSE|FACEDOWN_ATTACK combined), confirmed straight
+        // from a real "[set]" engine log earlier in this project. Strict
+        // === equality against a single flag would never match that
+        // combined value — this is exactly why face-down Spells/Traps
+        // never rendered as face-down. Must use bitwise AND throughout.
+        const isFacedownPos = !!(card.position & (OcgPosition.FACEDOWN_DEFENSE | OcgPosition.FACEDOWN_ATTACK));
+        const isOpponentFacedown = isFacedownPos && seat !== humanIdx;
+        if(isFacedownPos){
+          // ALWAYS generic face-down styling on the tile, regardless of
+          // whose card it is — this now matches manual mode's actual
+          // convention exactly. Revealing your own card's real art directly
+          // on the tile (the previous design) doesn't look like a real duel
+          // and isn't what was wanted, even though it would have been safe
+          // in this single-browser vs-NPC mode specifically. Clicking is
+          // how you check your own card now, same as manual mode.
+          div.classList.add("facedown");
+          if(!opts.st) div.classList.add("def");
+          div.style.cursor = "pointer";
+          div.addEventListener("click", (e)=>{ e.stopPropagation(); openLiveCardPanel(interaction, humanIdx, card.code, location, cardInfoLookup, seat, isOpponentFacedown); });
+        }else{
+          if(!opts.st && (card.position & OcgPosition.FACEUP_DEFENSE)) div.classList.add("def");
+          appendCardVisual(div, { name: liveCardName(cardInfoLookup, card.code), image_url_small: liveCardThumb(cardInfoLookup, card.code) });
+          if(!opts.st) addStatBadge(div, { atk: (cardInfoLookup[card.code]||{}).atk, def: (cardInfoLookup[card.code]||{}).def });
+          attachHoverPreview(div, ()=> ({ image_full: (cardInfoLookup[card.code]||{}).image_full }));
+          // Viewing works on ANY visible card, any time — not just during
+          // your own decision point, matching manual mode. Actions only
+          // show up inside the panel when it's genuinely your turn to
+          // decide something for this exact card (openLiveCardPanel checks
+          // that itself), but reading a card's text should never be gated.
+          div.style.cursor = "pointer";
+          div.addEventListener("click", (e)=>{ e.stopPropagation(); openLiveCardPanel(interaction, humanIdx, card.code, location, cardInfoLookup, seat, false); });
+        }
+      }else if(canClickZones && seat === humanIdx && isZoneEligibleForPlace(location, sequence)){
+        div.classList.add("drag-over"); // reuses the existing gold highlight style to mark it as a valid click target
+        div.style.cursor = "pointer";
+        div.addEventListener("click", (e)=>{ e.stopPropagation(); resolveInteraction(interaction, pending.handle, {type:OcgResponseType.SELECT_PLACE, places:[{player:humanIdx, location, sequence}]}); });
+      }
+      return div;
+    }
+    function pileRow(seat){
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.cssText = "justify-content:center;gap:20px;";
+      const gyDiv = document.createElement("div");
+      gyDiv.className = "pile";
+      gyDiv.style.cursor = "pointer";
+      gyDiv.innerHTML = '<div class="count">'+state.zones[seat].grave.length+'</div><div>Graveyard</div>';
+      gyDiv.addEventListener("click", (e)=>{ e.stopPropagation(); openLivePileView(state.zones[seat].grave, "Graveyard", cardInfoLookup); });
+      const banDiv = document.createElement("div");
+      banDiv.className = "pile";
+      banDiv.style.cursor = "pointer";
+      banDiv.innerHTML = '<div class="count">'+state.zones[seat].removed.length+'</div><div>Banished</div>';
+      banDiv.addEventListener("click", (e)=>{ e.stopPropagation(); openLivePileView(state.zones[seat].removed, "Banished", cardInfoLookup); });
+      row.appendChild(gyDiv); row.appendChild(banDiv);
+      return row;
+    }
+    function strip(seat, label){
+      const div = document.createElement("div");
+      div.className = "player-strip" + (seat===humanIdx ? "" : "");
+      div.innerHTML =
+        '<div><div class="player-name'+(seat===humanIdx?' you':'')+'">'+label+'</div>' +
+        '<div class="meta-pills">' +
+          '<span class="meta-pill">Hand '+state.zones[seat].hand.length+'</span>' +
+          '<span class="meta-pill">Deck '+state.zones[seat].deck+'</span>' +
+          '<span class="meta-pill">Extra '+state.zones[seat].extra+'</span>' +
+        '</div></div>' +
+        '<div class="lp-block"><span class="lp-num">'+state.lp[seat]+'</span></div>';
+      return div;
+    }
+    function monsterRow(seat){
+      const row = document.createElement("div");
+      row.className = "zone-row";
+      for(let i=0;i<5;i++) row.appendChild(zoneDiv(state.zones[seat].mzone[i], {}, seat, OcgLocation.MZONE, i));
+      return row;
+    }
+    function spellRow(seat){
+      const row = document.createElement("div");
+      row.className = "zone-row";
+      for(let i=0;i<5;i++) row.appendChild(zoneDiv(state.zones[seat].szone[i], {st:true}, seat, OcgLocation.SZONE, i));
+      row.appendChild(zoneDiv(state.zones[seat].field, {st:true}, seat, OcgLocation.FZONE, 0));
+      return row;
+    }
+    function emzStrip(){
+      const wrap = document.createElement("div");
+      wrap.className = "mid-strip";
+      const row = document.createElement("div");
+      row.className = "zone-row";
+      [0,1].forEach(slotIdx=>{
+        const seq = 5 + slotIdx;
+        const card = state.zones[0].mzone[seq] || state.zones[1].mzone[seq];
+        const ownerSeat = state.zones[0].mzone[seq] ? 0 : (state.zones[1].mzone[seq] ? 1 : humanIdx);
+        const div = zoneDiv(card, {}, ownerSeat, OcgLocation.MZONE, seq);
+        div.classList.add("emz");
+        row.appendChild(div);
+      });
+      wrap.appendChild(row);
+      return wrap;
+    }
+
+    const board = document.createElement("div");
+    board.className = "board-wrap";
+    board.appendChild(strip(npcIdx, "NPC"));
+    board.appendChild(pileRow(npcIdx));
+    board.appendChild(spellRow(npcIdx));
+    board.appendChild(monsterRow(npcIdx));
+    board.appendChild(emzStrip());
+    board.appendChild(monsterRow(humanIdx));
+    board.appendChild(spellRow(humanIdx));
+    board.appendChild(pileRow(humanIdx));
+    board.appendChild(strip(humanIdx, "You"));
+
+    const handWrap = document.createElement("div");
+    handWrap.className = "hand-area";
+    handWrap.style.minHeight = "70px";
+    state.zones[humanIdx].hand.forEach(c=>{
+      const div = document.createElement("div");
+      div.className = "hand-card";
+      appendCardVisual(div, { name: liveCardName(cardInfoLookup, c.code), image_url_small: liveCardThumb(cardInfoLookup, c.code) });
+      attachHoverPreview(div, ()=> ({ image_full: cardInfoLookup[c.code] && cardInfoLookup[c.code].image_full }));
+      div.addEventListener("click", (e)=>{ e.stopPropagation(); openLiveCardPanel(interaction, humanIdx, c.code, OcgLocation.HAND, cardInfoLookup, humanIdx); });
+      handWrap.appendChild(div);
+    });
+    if(!state.zones[humanIdx].hand.length) handWrap.innerHTML = '<span class="hand-empty">Nothing in hand.</span>';
+    board.appendChild(handWrap);
+
+    if(pending){
+      const hint = document.createElement("div");
+      hint.style.cssText = "text-align:center;font-size:12px;color:var(--gold-bright);margin-top:8px;";
+      hint.textContent = pending.typeName === "select_place" ? "Click a highlighted zone to place your card there."
+        : pending.typeName === "select_idlecmd" ? "Click one of your cards to see what you can do with it, or pass below."
+        : pending.typeName === "select_battlecmd" ? "Click a monster to attack, or a card you can activate, or pass below."
+        : "";
+      board.appendChild(hint);
+      board.appendChild(passActionBar(interaction, pending.handle));
+    }
+    return board;
+  }
+
+  // A shared mutable object, not a return value: the engine calls
+  // humanRespond and gets back a pending Promise, but the thing that
+  // RESOLVES that promise is a click on an actual card somewhere in
+  // renderLiveBoard — which runs on every redraw, long after humanRespond
+  // returned. This object is how the two sides find each other.
+  function createInteractionState(){ return { pending:null, resolve:null }; }
+
+  // Given a specific card (by code) and the current pending decision,
+  // returns every action available for THAT card specifically — this is
+  // what makes clicking an actual card show only what's relevant to it,
+  // instead of one flat list of every legal action in the game.
+  function findCardActionOptions(interaction, humanIdx, code, location){
+    const { typeName, msg } = interaction.pending;
+    // Match on location too, not just code — otherwise an identical card
+    // held both in hand and already on the field would cross-contaminate
+    // (e.g. clicking the on-field copy could wrongly offer "Normal Summon,"
+    // which only makes sense for the hand copy).
+    const find = (arr)=> (arr||[]).findIndex(c=>c.code===code && c.location===location);
+    const opts = [];
+    if(typeName === "select_idlecmd"){
+      const s = find(msg.summons);
+      if(s>=0) opts.push({ label:"Normal Summon", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_SUMMON, index:s} });
+      const sp = find(msg.special_summons);
+      if(sp>=0) opts.push({ label:"Special Summon", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_SPECIAL_SUMMON, index:sp} });
+      const ms = find(msg.monster_sets);
+      if(ms>=0) opts.push({ label:"Set (face-down monster)", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_MONSTER_SET, index:ms} });
+      const ss = find(msg.spell_sets);
+      if(ss>=0) opts.push({ label:"Set (face-down)", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_SPELL_SET, index:ss} });
+      const ac = find(msg.activates);
+      if(ac>=0) opts.push({ label:"Activate", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_ACTIVATE, index:ac} });
+      const pc = find(msg.pos_changes);
+      if(pc>=0) opts.push({ label:"Change Battle Position", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.SELECT_POS_CHANGE, index:pc} });
+    }else if(typeName === "select_battlecmd"){
+      const a = find(msg.attacks);
+      if(a>=0) opts.push({ label:"Attack"+(msg.attacks[a].can_direct?" (direct attack possible)":""), value:{type:OcgResponseType.SELECT_BATTLECMD, action:SelectBattleCMDAction.SELECT_BATTLE, index:a} });
+      // "chains" — cards activatable during the Battle Phase (a Trap or
+      // Quick-Play Spell, most commonly). Missed entirely before this audit.
+      const c = find(msg.chains);
+      if(c>=0) opts.push({ label:"Activate", value:{type:OcgResponseType.SELECT_BATTLECMD, action:SelectBattleCMDAction.SELECT_CHAIN, index:c} });
+    }
+    return opts;
+  }
+
+  function resolveInteraction(interaction, handle, value){
+    if(!interaction.resolve) return; // a stale click after this decision was already resolved (or the duel ended) — no-op instead of crashing
+    getLib().duelSetResponse(handle, value);
+    const r = interaction.resolve;
+    interaction.pending = null; interaction.resolve = null;
+    r(true); // MUST resolve truthy — duelEngine.js's loop treats a falsy result as "respondFn didn't handle this," which is exactly what threw "Don't yet know how to answer" even though duelSetResponse had already succeeded above
+  }
+
+  // Called from a card's onclick. Zero matches -> tell them plainly nothing
+  // applies right now. One match -> just do it. Multiple -> a small popover
+  // right where they clicked, matching the manual board's drag-and-drop
+  // popover pattern.
+  // Replaces the old auto-resolve-on-single-match behavior entirely: every
+  // card click now opens the SAME modal manual mode uses, always showing
+  // the card's real art and text (so you can read it regardless of whether
+  // there's anything to do with it right now — matching manual mode
+  // exactly), with every genuinely available action as its own clearly
+  // labeled button. Nothing is ever auto-picked for you.
+  // Graveyard contents are public information in real rules — either player
+  // can freely inspect either pile at any time, so this is view-only with
+  // no ownership restriction, unlike hand cards.
+  function openLivePileView(list, label, cardInfoLookup){
+    document.getElementById("cardModalTitle").textContent = label;
+    if(!list.length){
+      document.getElementById("cardModalBody").innerHTML = '<div class="empty-txt">Empty.</div>';
+      document.getElementById("cardModalOverlay").classList.add("show");
+      return;
+    }
+    document.getElementById("cardModalBody").innerHTML = '<div class="results-list">' + list.map((c,i)=>{
+      const src = liveCardThumb(cardInfoLookup, c.code);
+      return '<div class="result-item" data-pilecard="'+i+'" style="cursor:pointer;">'+(src?'<img src="'+src+'" alt="">':'')+'<div class="info"><b>'+escapeHtml(liveCardName(cardInfoLookup, c.code))+'</b></div></div>';
+    }).join("") + '</div>';
+    document.getElementById("cardModalOverlay").classList.add("show");
+    document.getElementById("cardModalBody").querySelectorAll("[data-pilecard]").forEach(el=>{
+      const c = list[Number(el.getAttribute("data-pilecard"))];
+      attachHoverPreview(el, ()=> ({ image_full: (cardInfoLookup[c.code]||{}).image_full }));
+      el.addEventListener("click", ()=>{
+        const info = cardInfoLookup[c.code];
+        const name = liveCardName(cardInfoLookup, c.code);
+        document.getElementById("cardModalTitle").textContent = name;
+        document.getElementById("cardModalBody").innerHTML =
+          (info && info.image_full ? '<img class="zoom-img" src="'+info.image_full+'" alt="">' : '<div class="zoom-img token-placeholder" style="aspect-ratio:59/86;border-radius:6px;">'+escapeHtml(name)+'</div>') +
+          '<div class="zoom-effect">'+escapeHtml(info ? (info.desc||"") : "")+'</div>' +
+          '<button class="btn btn-block" id="pileBackBtn" style="margin-top:10px;">&larr; Back to list</button>';
+        document.getElementById("pileBackBtn").addEventListener("click", ()=> openLivePileView(list, label, cardInfoLookup));
+      });
+    });
+  }
+
+  function openLiveCardPanel(interaction, humanIdx, code, location, cardInfoLookup, seat, isOpponentFacedown){
+    if(isOpponentFacedown){
+      // Matches manual mode's exact restriction: an opponent's face-down
+      // card reveals nothing, even to a click — only your own get shown.
+      document.getElementById("cardModalTitle").textContent = "Face-down card";
+      document.getElementById("cardModalBody").innerHTML = '<div class="empty-txt">This card is set face-down by your opponent — only they know what it is.</div>';
+      document.getElementById("cardModalOverlay").classList.add("show");
+      return;
+    }
+    const opts = (interaction.pending && seat === humanIdx) ? findCardActionOptions(interaction, humanIdx, code, location) : [];
+    console.debug("[vs-npc] card clicked", { code, location, seat, pendingType: interaction.pending && interaction.pending.typeName, optionsFound: opts.map(o=>o.label), rawMsg: interaction.pending && interaction.pending.msg });
+    const info = cardInfoLookup[code];
+    const name = info ? info.name : ("Card #"+code);
+    document.getElementById("cardModalTitle").textContent = name;
+    const actionsHtml = opts.length
+      ? '<div class="action-grid">' + opts.map((o,i)=>'<button class="btn" data-liveact="'+i+'">'+escapeHtml(o.label)+'</button>').join("") + '</div>'
+      : '<div class="empty-txt">Nothing available for this card right now.</div>';
+    document.getElementById("cardModalBody").innerHTML =
+      (info && info.image_full
+        ? '<img class="zoom-img" src="'+info.image_full+'" alt="">'
+        : '<div class="zoom-img token-placeholder" style="aspect-ratio:59/86;border-radius:6px;">'+escapeHtml(name)+'</div>') +
+      '<div class="zoom-effect">'+escapeHtml(info ? (info.desc||"") : "")+'</div>' +
+      actionsHtml;
+    document.getElementById("cardModalBody").querySelectorAll("button[data-liveact]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const idx = Number(btn.getAttribute("data-liveact"));
+        closeCardModal();
+        resolveInteraction(interaction, interaction.pending.handle, opts[idx].value);
+      });
+    });
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  function passActionBar(interaction, handle){
+    const { typeName, msg } = interaction.pending;
+    const bar = document.createElement("div");
+    bar.className = "action-grid";
+    bar.style.marginTop = "10px";
+    const btns = [];
+    if(typeName === "select_idlecmd"){
+      if(msg.to_bp) btns.push({ label:"Proceed to Battle Phase", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.TO_BP, index:null} });
+      btns.push({ label:"End Main Phase", value:{type:OcgResponseType.SELECT_IDLECMD, action:SelectIdleCMDAction.TO_EP, index:null} });
+    }else if(typeName === "select_battlecmd"){
+      if(msg.to_m2) btns.push({ label:"Proceed to Main Phase 2", value:{type:OcgResponseType.SELECT_BATTLECMD, action:SelectBattleCMDAction.TO_M2, index:null} });
+      btns.push({ label:"End Turn", value:{type:OcgResponseType.SELECT_BATTLECMD, action:SelectBattleCMDAction.TO_EP, index:null} });
+    }else{
+      return bar; // select_place/select_position have no "pass" option
+    }
+    btns.forEach(b=>{
+      const btn = document.createElement("button");
+      btn.className = "btn";
+      btn.textContent = b.label;
+      btn.addEventListener("click", ()=> resolveInteraction(interaction, handle, b.value));
+      bar.appendChild(btn);
+    });
+    return bar;
+  }
+
+  function createHumanRespond(humanIdx, interaction, cardInfoLookup, onLog, state){
+    // Small helper: several decision types (select_card, select_tribute,
+    // select_yesno, select_option) carry no indication of WHAT triggered
+    // them — the engine's own message has no "reason" field for those. The
+    // one thing that DOES help is that "chaining" messages report which
+    // card's effect is currently resolving, so tracking that gives real,
+    // accurate context instead of a bare "Select 1 card(s)".
+    function contextSuffix(){
+      return state.lastChainingCode ? (" — effect of " + liveCardName(cardInfoLookup, state.lastChainingCode)) : "";
+    }
+    return async function humanRespond(handle, typeName, msg){
+      const isHumanTurn = msg.player === humanIdx;
+      if(!isHumanTurn) return defaultRespond(handle, typeName, msg, onLog);
+
+      if(typeName === "select_idlecmd" || typeName === "select_battlecmd"){
+        return new Promise(resolve=>{
+          interaction.pending = { handle, typeName, msg };
+          interaction.resolve = resolve;
+          interaction.redraw();
+        });
+      }
+      if(typeName === "select_place"){
+        return new Promise(resolve=>{
+          interaction.pending = { handle, typeName, msg };
+          interaction.resolve = resolve;
+          interaction.redraw();
+        });
+      }
+      if(typeName === "select_position"){
+        // Real bug found here: this used to just `return promptHuman(...)`
+        // directly — promptHuman only resolves a JS Promise with the chosen
+        // value, it never actually calls duelSetResponse(). duelEngine.js's
+        // loop then saw a truthy return and assumed the engine had been
+        // answered, when it genuinely hadn't — the WASM engine was still
+        // waiting for a real response underneath, which is exactly what
+        // produced the repeating "(engine rejected the previous response —
+        // retrying)". Also moved to the same modal as every other decision,
+        // instead of the old bottom-of-page prompt area, for consistency.
+        const opts = [];
+        if(msg.positions & OcgPosition.FACEUP_ATTACK) opts.push({ label:"Attack Position", value:{type:OcgResponseType.SELECT_POSITION, position:OcgPosition.FACEUP_ATTACK} });
+        if(msg.positions & OcgPosition.FACEUP_DEFENSE) opts.push({ label:"Defense Position (face-up)", value:{type:OcgResponseType.SELECT_POSITION, position:OcgPosition.FACEUP_DEFENSE} });
+        if(msg.positions & OcgPosition.FACEDOWN_DEFENSE) opts.push({ label:"Set (face-down Defense)", value:{type:OcgResponseType.SELECT_POSITION, position:OcgPosition.FACEDOWN_DEFENSE} });
+        if(msg.positions & OcgPosition.FACEDOWN_ATTACK) opts.push({ label:"Set (face-down Attack)", value:{type:OcgResponseType.SELECT_POSITION, position:OcgPosition.FACEDOWN_ATTACK} });
+        const info = cardInfoLookup[msg.code];
+        const name = liveCardName(cardInfoLookup, msg.code);
+        document.getElementById("cardModalTitle").textContent = "Choose a position for " + name;
+        document.getElementById("cardModalBody").innerHTML =
+          (info && info.image_full ? '<img class="zoom-img" src="'+info.image_full+'" alt="">' : '') +
+          '<div class="action-grid">' + opts.map((o,i)=>'<button class="btn" data-posact="'+i+'">'+escapeHtml(o.label)+'</button>').join("") + '</div>';
+        document.getElementById("cardModalOverlay").classList.add("show");
+        const chosen = await new Promise(resolve=>{
+          document.getElementById("cardModalBody").querySelectorAll("button[data-posact]").forEach(btn=>{
+            btn.addEventListener("click", ()=>{
+              const idx = Number(btn.getAttribute("data-posact"));
+              closeCardModal();
+              resolve(opts[idx].value);
+            });
+          });
+        });
+        getLib().duelSetResponse(handle, chosen);
+        return true;
+      }
+      if(typeName === "select_effectyn"){
+        const info = cardInfoLookup[msg.code];
+        const name = liveCardName(cardInfoLookup, msg.code);
+        document.getElementById("cardModalTitle").textContent = "Use the effect of " + name + "?";
+        document.getElementById("cardModalBody").innerHTML =
+          (info && info.image_full ? '<img class="zoom-img" src="'+info.image_full+'" alt="">' : '') +
+          '<div class="zoom-effect">'+escapeHtml(info ? (info.desc||"") : "")+'</div>' +
+          '<div class="action-grid"><button class="btn" data-yn="1">Yes</button><button class="btn" data-yn="0">No</button></div>';
+        document.getElementById("cardModalOverlay").classList.add("show");
+        const yes = await new Promise(resolve=>{
+          document.getElementById("cardModalBody").querySelectorAll("button[data-yn]").forEach(btn=>{
+            btn.addEventListener("click", ()=>{ closeCardModal(); resolve(btn.getAttribute("data-yn")==="1"); });
+          });
+        });
+        getLib().duelSetResponse(handle, { type:OcgResponseType.SELECT_EFFECTYN, yes });
+        return true;
+      }
+      if(typeName === "select_yesno"){
+        // description is an opaque internal effect-description code, not a
+        // human-readable string — we can present the yes/no choice itself
+        // accurately, just not what it's specifically asking about.
+        const yes = await promptYesNo(interaction.promptArea, "A card effect is asking a Yes/No question" + contextSuffix() + ".");
+        getLib().duelSetResponse(handle, { type:OcgResponseType.SELECT_YESNO, yes });
+        return true;
+      }
+      if(typeName === "select_option"){
+        // Same caveat as select_yesno — option contents are opaque codes,
+        // so these are presented as "Option 1/2/3" rather than real text.
+        const idx = await promptChooseIndex(interaction.promptArea, "Choose an option" + contextSuffix(), msg.options.length);
+        getLib().duelSetResponse(handle, { type:OcgResponseType.SELECT_OPTION, index: idx });
+        return true;
+      }
+      if(typeName === "select_card"){
+        const resp = await promptMultiCardSelect(interaction.promptArea, "Select "+(msg.min===msg.max?msg.min:msg.min+"-"+msg.max)+" card(s)"+contextSuffix(), msg.selects, msg.min, msg.max, msg.can_cancel, OcgResponseType.SELECT_CARD, cardInfoLookup);
+        getLib().duelSetResponse(handle, resp);
+        return true;
+      }
+      if(typeName === "select_tribute"){
+        const resp = await promptMultiCardSelect(interaction.promptArea, "Select "+(msg.min===msg.max?msg.min:msg.min+"-"+msg.max)+" Tribute(s)", msg.selects, msg.min, msg.max, msg.can_cancel, OcgResponseType.SELECT_TRIBUTE, cardInfoLookup);
+        getLib().duelSetResponse(handle, resp);
+        return true;
+      }
+      // Not yet interactive for this pass (chain windows, targeting via
+      // select_unselect_card, announce_*, rock-paper-scissors, select_sum,
+      // select_counter, select_disfield, sort_card, select_card_codes) —
+      // falls back to the same bot logic used for the NPC, even though
+      // it's technically the human's decision. Deliberate, disclosed gap.
+      return defaultRespond(handle, typeName, msg, onLog);
+    };
+  }
+
+  function promptYesNo(promptArea, title){
+    return new Promise(resolve=>{
+      promptArea.innerHTML = '<div style="font-size:13px;color:var(--gold-bright);margin-bottom:8px;">'+escapeHtml(title)+'</div><div class="action-grid"></div>';
+      const grid = promptArea.querySelector(".action-grid");
+      [["Yes",true],["No",false]].forEach(([label,val])=>{
+        const btn = document.createElement("button");
+        btn.className = "btn"; btn.textContent = label;
+        btn.addEventListener("click", ()=>{ promptArea.innerHTML = ""; resolve(val); });
+        grid.appendChild(btn);
+      });
+    });
+  }
+
+  function promptChooseIndex(promptArea, title, count){
+    return new Promise(resolve=>{
+      promptArea.innerHTML = '<div style="font-size:13px;color:var(--gold-bright);margin-bottom:8px;">'+escapeHtml(title)+'</div><div class="action-grid"></div>';
+      const grid = promptArea.querySelector(".action-grid");
+      for(let i=0;i<count;i++){
+        const btn = document.createElement("button");
+        btn.className = "btn"; btn.textContent = "Option "+(i+1);
+        btn.addEventListener("click", ()=>{ promptArea.innerHTML = ""; resolve(i); });
+        grid.appendChild(btn);
+      }
+    });
+  }
+
+  // Shared by select_card and select_tribute — both are "pick min..max
+  // specific card instances from a list" with an identical response shape
+  // ({ indicies } or null to cancel). The candidates can be anywhere (hand,
+  // GY, deck, field), so this is a checklist rather than board clicks.
+  function promptMultiCardSelect(promptArea, title, candidates, min, max, canCancel, responseType, cardInfoLookup){
+    return new Promise(resolve=>{
+      const selected = new Set();
+      function render(){
+        promptArea.innerHTML =
+          '<div style="font-size:13px;color:var(--gold-bright);margin-bottom:8px;">'+escapeHtml(title)+'</div>' +
+          '<div class="results-list" id="msSelList"></div>' +
+          '<div class="action-grid" style="margin-top:8px;">' +
+            '<button class="btn" id="msConfirmBtn"'+(selected.size<min?" disabled":"")+'>Confirm</button>' +
+            (canCancel ? '<button class="btn" id="msCancelBtn">Cancel</button>' : '') +
+          '</div>';
+        const list = document.getElementById("msSelList");
+        candidates.forEach((c,i)=>{
+          const row = document.createElement("div");
+          row.className = "result-item";
+          row.style.cursor = "pointer";
+          if(selected.has(i)) row.style.borderColor = "var(--gold-bright)";
+          const src = liveCardThumb(cardInfoLookup, c.code);
+          row.innerHTML = (src?'<img src="'+src+'" alt="">':'') + '<div class="info"><b>'+escapeHtml(liveCardName(cardInfoLookup, c.code))+'</b></div>';
+          row.addEventListener("click", ()=>{
+            if(selected.has(i)) selected.delete(i);
+            else if(selected.size < max) selected.add(i);
+            render();
+          });
+          list.appendChild(row);
+        });
+        document.getElementById("msConfirmBtn").addEventListener("click", ()=>{
+          if(selected.size < min) return;
+          promptArea.innerHTML = "";
+          resolve({ type: responseType, indicies: Array.from(selected) });
+        });
+        if(canCancel){
+          document.getElementById("msCancelBtn").addEventListener("click", ()=>{
+            promptArea.innerHTML = "";
+            resolve({ type: responseType, indicies: null });
+          });
+        }
+      }
+      render();
+    });
+  }
+
+  document.getElementById("startNpcDuelBtn").addEventListener("click", async ()=>{
+    const btn = document.getElementById("startNpcDuelBtn");
+    const boardEl = document.getElementById("liveDuelBoard");
+    const logEl = document.getElementById("autoLogPanel");
+    logEl.innerHTML = "";
+    boardEl.style.display = "block";
+    btn.disabled = true;
+    btn.textContent = "Loading engine…";
+
+    const p0Sel = document.getElementById("autoDeckP0");
+    const p1Sel = document.getElementById("autoDeckP1");
+    const p0Deck = p0Sel && p0Sel.value ? decks.find(d=>d.id===p0Sel.value) : null;
+    const p1Deck = p1Sel && p1Sel.value ? decks.find(d=>d.id===p1Sel.value) : null;
+    const deckP0 = p0Deck ? deckToEngineList(p0Deck) : TEST_DECK_P0;
+    const deckP1 = p1Deck ? deckToEngineList(p1Deck) : TEST_DECK_P1;
+
+    // Real decks already carry name/image data from the search that built
+    // them. The built-in test decks don't — this fetches real info for
+    // whichever codes aren't already covered, so cards never show as bare
+    // "Card #12345678" regardless of which decks were picked.
+    const cardInfoLookup = {};
+    (p0Deck ? p0Deck.main : []).forEach(c=> cardInfoLookup[c.id] = c);
+    (p1Deck ? p1Deck.main : []).forEach(c=> cardInfoLookup[c.id] = c);
+    const allCodes = [...new Set([...deckP0, ...deckP1].map(c=>c.code))];
+    const missingCodes = allCodes.filter(code => !cardInfoLookup[code]);
+    if(missingCodes.length){
+      const fetched = await fetchCardsByIds(missingCodes);
+      Object.assign(cardInfoLookup, fetched);
+    }
+
+    const humanIdx = 0; // you're always seated as player 0 in this local vs-NPC mode
+    const state = createLiveBoardState();
+    // Deck count started at 0 and nothing ever set it to the real starting
+    // size — draws only ever subtracted from that 0 (clamped there), so it
+    // permanently showed empty regardless of what was actually in the deck.
+    state.zones[0].deck = deckP0.reduce((s,c)=>s+c.qty, 0);
+    state.zones[1].deck = deckP1.reduce((s,c)=>s+c.qty, 0);
+    window.__liveDuelState = state; // type __liveDuelState in the console anytime to inspect the full board model directly
+    const promptArea = document.createElement("div");
+    promptArea.style.marginTop = "10px";
+    const interaction = createInteractionState();
+    interaction.promptArea = promptArea;
+
+    function redraw(){
+      boardEl.innerHTML = "";
+      boardEl.appendChild(renderLiveBoard(state, cardInfoLookup, humanIdx, interaction));
+      boardEl.appendChild(promptArea);
+    }
+    interaction.redraw = redraw;
+    redraw();
+
+    try{
+      await ensureEngineInit();
+      btn.textContent = "Duel in progress…";
+      const onLog = (l)=>{
+        console.debug("[vs-npc]", l);
+        if(l.startsWith("[")) return; // raw engine message dump — keeps the visible log readable, same filter as Quick Simulate
+        const d = document.createElement("div");
+        d.textContent = l;
+        logEl.insertBefore(d, logEl.firstChild);
+      };
+      const onMessage = (m, typeName)=>{ applyLiveMessage(state, m, typeName); redraw(); };
+      const humanResponder = createHumanRespond(humanIdx, interaction, cardInfoLookup, onLog, state);
+
+      const result = await startDuel({ deckP0, deckP1, onLog, onMessage, respondFn: humanResponder });
+
+      const winnerLabel = result ? (result.winner===humanIdx ? "You won!" : "The NPC won.") : "Duel stopped early (safety cap).";
+      promptArea.innerHTML = '<div style="font-size:14px;font-weight:700;color:var(--gold-bright);">'+escapeHtml(winnerLabel + (result?" ("+result.reason+")":""))+'</div>';
+    }catch(e){
+      promptArea.innerHTML = '<div style="color:#ffb199;">❌ '+escapeHtml(e && e.message ? e.message : String(e))+'</div>';
+      console.error(e);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Play vs NPC";
+    }
+  });
+
+  let draggedHandIdx = null;
+
+  function attachHoverPreview(el, getCard){
+    let previewEl = null;
+    el.addEventListener("mouseenter", ()=>{
+      const card = getCard();
+      if(!card || !card.image_full) return;
+      previewEl = document.getElementById("hoverPreview");
+      if(!previewEl){
+        previewEl = document.createElement("div");
+        previewEl.id = "hoverPreview";
+        previewEl.className = "hover-preview";
+        document.body.appendChild(previewEl);
+      }
+      previewEl.innerHTML = '<img src="'+card.image_full+'" alt="">';
+      const rect = el.getBoundingClientRect();
+      let left = rect.right + 10;
+      if(left + 180 > window.innerWidth) left = rect.left - 190;
+      const top = Math.max(8, Math.min(rect.top - 20, window.innerHeight - 260));
+      previewEl.style.left = left + "px";
+      previewEl.style.top = top + "px";
+      previewEl.style.display = "block";
+    });
+    el.addEventListener("mouseleave", ()=>{
+      const p = document.getElementById("hoverPreview");
+      if(p) p.style.display = "none";
+    });
+  }
+
+  function showQuickActionPopover(x, y, buttons){
+    let pop = document.getElementById("quickActionPopover");
+    if(!pop){
+      pop = document.createElement("div");
+      pop.id = "quickActionPopover";
+      pop.className = "quick-popover";
+      document.body.appendChild(pop);
+    }
+    pop.innerHTML = buttons.map(b=>'<button class="btn" data-qact="'+b.act+'">'+b.label+'</button>').join("");
+    pop.style.left = Math.min(Math.max(8,x), window.innerWidth-160) + "px";
+    pop.style.top = Math.min(Math.max(8,y), window.innerHeight-140) + "px";
+    pop.style.display = "flex";
+    return pop;
+  }
+  function hideQuickActionPopover(){
+    const pop = document.getElementById("quickActionPopover");
+    if(pop) pop.style.display = "none";
+  }
+  document.addEventListener("click", (e)=>{
+    const pop = document.getElementById("quickActionPopover");
+    if(pop && pop.style.display !== "none" && !pop.contains(e.target)) hideQuickActionPopover();
+  });
+
+  async function playFieldSpellFromHand(idx, card, seat){
+    const room = await loadRoom(); if(!room) return;
+    room.board[seat+"-field"] = Object.assign({}, card, {position:"attack"});
+    room.log.push(room.players[seat].name + " activated Field Spell " + card.name + ".");
+    myHand.splice(idx,1);
+    await saveHand(); await saveRoom(room);
+    tick();
+  }
+
+  // Drag-and-drop from hand: the click-based hand modal flow still works
+  // exactly as before (and is the only option on touch devices) — this is
+  // an additive shortcut for desktop. zoneKind is "m" (monster), "st"
+  // (spell/trap), or "field", used to reject drops of the wrong card type
+  // onto the wrong zone type — the same restriction the click flow already
+  // enforces structurally by only listing matching zones in openZonePicker.
+  // A player can only occupy ONE Extra Monster Zone at a time (real rule —
+  // using the second one requires an "Extra Link" from a Link Monster's
+  // arrows, which this app doesn't model). Returns true if `seat` is free
+  // to place into `excludeZid` specifically.
+  function canUseEmz(seat, excludeZid){
+    return !["emz1","emz2"].some(zid => zid !== excludeZid && currentRoom.board[zid] && zoneOwner(zid) === seat);
+  }
+
+  function attachDropTarget(el, zoneId, zoneKind){
+    el.addEventListener("dragover", (e)=>{
+      if(draggedHandIdx == null) return;
+      if(currentRoom.board[zoneId]) return;
+      const card = myHand[draggedHandIdx];
+      if(!card) return;
+      const isST = card.type && /Spell|Trap/i.test(card.type);
+      const isFieldSpell = card.type && /Field Spell/i.test(card.type);
+      let ok;
+      if(zoneKind === "field") ok = isFieldSpell;
+      else if(zoneKind === "st") ok = isST && !isFieldSpell;
+      else if(zoneKind === "emz") ok = !isST && isExtraType(card.type) && canUseEmz(mySeat(), zoneId);
+      else ok = !isST;
+      if(!ok) return;
+      e.preventDefault();
+      el.classList.add("drag-over");
+    });
+    el.addEventListener("dragleave", ()=> el.classList.remove("drag-over"));
+    el.addEventListener("drop", (e)=>{
+      e.preventDefault();
+      el.classList.remove("drag-over");
+      if(draggedHandIdx == null) return;
+      const idx = draggedHandIdx;
+      const card = myHand[idx];
+      if(!card) return;
+      const seat = mySeat();
+      const isST = card.type && /Spell|Trap/i.test(card.type);
+      const isFieldSpell = card.type && /Field Spell/i.test(card.type);
+      if(zoneKind === "field"){
+        if(!isFieldSpell) return;
+        playFieldSpellFromHand(idx, card, seat);
+        return;
+      }
+      if(zoneKind === "emz" && (isST || !isExtraType(card.type) || !canUseEmz(seat, zoneId))) return;
+      const rect = el.getBoundingClientRect();
+      const buttons = isST
+        ? [{label:"Activate (face-up)", act:"atk"}, {label:"Set face-down", act:"fd"}]
+        : [{label:"Attack", act:"atk"}, {label:"Defense", act:"def"}, {label:"Set face-down", act:"fd"}];
+      const pop = showQuickActionPopover(rect.left, rect.bottom+4, buttons);
+      pop.querySelectorAll("button[data-qact]").forEach(btn=>{
+        btn.onclick = ()=>{
+          pendingZoneAction = { act: btn.getAttribute("data-qact"), card, seat, source:{type:"hand", idx} };
+          hideQuickActionPopover();
+          placeCardInZone(zoneId);
+        };
+      });
+    });
+  }
+
+  // Every equip relationship is grouped by its TARGET zone — the target
+  // itself and every card equipped to it share one color. Different targets
+  // (yours or your opponent's) get different colors, cycling through a
+  // fixed palette keyed off the target's own zoneId so the same
+  // relationship always renders the same color across every render.
+  const EQUIP_COLORS = ["#5fe0d0","#e0a15f","#a15fe0","#e05f9e","#9ee05f","#5f8ee0"];
+  function equipGroupKey(zoneId){
+    const v = currentRoom.board[zoneId];
+    if(v && v.equippedTo) return v.equippedTo;
+    for(const zid in currentRoom.board){
+      if(currentRoom.board[zid] && currentRoom.board[zid].equippedTo === zoneId) return zoneId;
+    }
+    return null;
+  }
+  function colorForEquipGroup(key){
+    let hash = 0;
+    for(let i=0;i<key.length;i++) hash = (hash*31 + key.charCodeAt(i)) >>> 0;
+    return EQUIP_COLORS[hash % EQUIP_COLORS.length];
+  }
+  function addEquipBadge(div, zoneId){
+    const key = equipGroupKey(zoneId);
+    if(!key) return;
+    const badge = document.createElement("div");
+    badge.className = "equip-badge";
+    badge.textContent = "⛓";
+    badge.style.background = colorForEquipGroup(key);
+    div.appendChild(badge);
+  }
+  function addCounterBadge(div, val){
+    const counters = val.counters || [];
+    const total = counters.reduce((s,c)=>s+c.count, 0);
+    if(!total) return;
+    const b = document.createElement("div");
+    b.className = "counter-badge";
+    b.textContent = total;
+    div.appendChild(b);
+  }
+
+  function addStatBadge(div, val){
+    if(val.atk == null && val.def == null) return; // Spells/Traps have no stats
+    const atkMod = val.atkMod || 0, defMod = val.defMod || 0;
+    const effAtk = val.atk!=null ? Math.max(0, val.atk+atkMod) : null;
+    const effDef = val.def!=null ? Math.max(0, val.def+defMod) : null;
+    const badge = document.createElement("div");
+    badge.className = "stat-badge";
+    badge.innerHTML =
+      '<span class="atk">'+(effAtk!=null?effAtk:"?")+(atkMod?(" ("+(atkMod>0?"+":"")+atkMod+")"):"")+'</span>' +
+      '<span class="def">'+(effDef!=null?effDef:"?")+(defMod?(" ("+(defMod>0?"+":"")+defMod+")"):"")+'</span>';
+    div.appendChild(badge);
+  }
+  function typeAccentClass(type){
+    if(!type) return "";
+    if(/Trap/i.test(type)) return "type-trap";
+    if(/Spell/i.test(type)) return "type-spell";
+    return "";
+  }
+  function appendCardVisual(container, val){
+    const src = cardThumb(val);
+    if(src){
+      const img = document.createElement("img");
+      img.src = src; img.alt = val.name;
+      container.appendChild(img);
+    }else{
+      const ph = document.createElement("div");
+      ph.className = "token-placeholder";
+      ph.textContent = val.name;
+      container.appendChild(ph);
+    }
+  }
+
+  function renderZoneRow(containerId, seat, kind, count, isSpellRow){
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    const room = currentRoom;
+    for(let i=1;i<=count;i++){
+      const zoneId = seat + "-" + kind + i;
+      const val = room.board[zoneId];
+      const div = document.createElement("div");
+      div.className = "zone" + (isSpellRow ? " st":"");
+      if(val && val.faceDown){
+        div.classList.add("facedown");
+        if(!isSpellRow) div.classList.add("def"); // Set monster — shown sideways (implied Defense), unlike a Set Spell/Trap
+        addCounterBadge(div, val); // counters are physical tokens on the card — visible even face-down, unlike identity
+      }
+      else if(val){
+        if(val.position === "defense") div.classList.add("def");
+        if(isSpellRow){ const cls = typeAccentClass(val.type); if(cls) div.classList.add(cls); }
+        if(val.negated) div.classList.add("negated");
+        addEquipBadge(div, zoneId);
+        appendCardVisual(div, val);
+        if(!isSpellRow) addStatBadge(div, val);
+        addCounterBadge(div, val);
+      }
+      div.addEventListener("click", ()=> openZoneModal(zoneId));
+      attachHoverPreview(div, ()=> (room.board[zoneId] && !( room.board[zoneId].faceDown && room.board[zoneId].ownerSeat !== mySeat() )) ? room.board[zoneId] : null);
+      attachDropTarget(div, zoneId, isSpellRow ? "st" : "m");
+      container.appendChild(div);
+    }
+    if(isSpellRow){
+      const fz = document.createElement("div");
+      const fval = room.board[seat+"-field"];
+      fz.className = "zone field-zone";
+      if(fval){
+        const cls = typeAccentClass(fval.type); if(cls) fz.classList.add(cls);
+        appendCardVisual(fz, fval);
+      }
+      else{ fz.innerHTML = '<span class="label">Field</span>'; }
+      fz.addEventListener("click", ()=> openZoneModal(seat+"-field"));
+      attachHoverPreview(fz, ()=> room.board[seat+"-field"] || null);
+      attachDropTarget(fz, seat+"-field", "field");
+      container.appendChild(fz);
+    }
+  }
+
+  function renderEmz(){
+    const container = document.getElementById("emzRow");
+    container.innerHTML = "";
+    ["emz1","emz2"].forEach(zid=>{
+      const val = currentRoom.board[zid];
+      const div = document.createElement("div");
+      div.className = "zone emz";
+      if(val && val.faceDown){ div.classList.add("facedown", "def"); addCounterBadge(div, val); } // EMZ only ever holds monsters
+      else if(val){
+        if(val.position === "defense") div.classList.add("def");
+        if(val.negated) div.classList.add("negated");
+        addEquipBadge(div, zid);
+        appendCardVisual(div, val);
+        addStatBadge(div, val);
+        addCounterBadge(div, val);
+      }else{ div.innerHTML = '<span class="label">Extra Monster Zone</span>'; }
+      div.addEventListener("click", ()=> openZoneModal(zid));
+      attachHoverPreview(div, ()=> (currentRoom.board[zid] && !(currentRoom.board[zid].faceDown && currentRoom.board[zid].ownerSeat !== mySeat())) ? currentRoom.board[zid] : null);
+      attachDropTarget(div, zid, "emz");
+      container.appendChild(div);
+    });
+  }
+
+  function renderPiles(containerId, seat){
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+    const gy = currentRoom.gy[seat] || [];
+    const banished = currentRoom.banished[seat] || [];
+    const gyPile = document.createElement("div");
+    gyPile.className = "pile";
+    gyPile.innerHTML = '<div class="count">'+gy.length+'</div><div>Graveyard</div>';
+    gyPile.addEventListener("click", ()=> openPileModal(seat, "gy"));
+    container.appendChild(gyPile);
+
+    const banPile = document.createElement("div");
+    banPile.className = "pile";
+    banPile.innerHTML = '<div class="count">'+banished.length+'</div><div>Banished</div>';
+    banPile.addEventListener("click", ()=> openPileModal(seat, "banished"));
+    container.appendChild(banPile);
+  }
+
+  function renderHand(){
+    const area = document.getElementById("handArea");
+    area.querySelectorAll(".hand-card").forEach(n=>n.remove());
+    document.getElementById("handEmptyMsg").style.display = myHand.length ? "none":"block";
+    myHand.forEach((card, idx)=>{
+      const div = document.createElement("div");
+      div.className = "hand-card";
+      div.draggable = true;
+      const img = document.createElement("img");
+      img.src = cardThumb(card); img.alt = card.name;
+      div.appendChild(img);
+      div.addEventListener("click", ()=> openHandCardModal(idx));
+      div.addEventListener("dragstart", (e)=>{
+        draggedHandIdx = idx;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(idx)); // Firefox requires setData to allow the drag to start at all
+      });
+      div.addEventListener("dragend", ()=>{ draggedHandIdx = null; });
+      attachHoverPreview(div, ()=> card);
+      area.appendChild(div);
+    });
+  }
+
+  function renderLog(log){
+    document.getElementById("logPanel").innerHTML = log.slice(-25).reverse().map(l=>"<div>"+escapeHtml(l)+"</div>").join("");
+  }
+
+  async function adjustLP(delta){
+    const room = await loadRoom(); if(!room) return;
+    room.players[mySeat()].lp = Math.max(0, room.players[mySeat()].lp + delta);
+    room.log.push(room.players[mySeat()].name+" LP "+(delta>0?"+":"")+delta+" -> "+room.players[mySeat()].lp);
+    await saveRoom(room); tick();
+  }
+  document.getElementById("lpMinus").addEventListener("click", ()=>adjustLP(-50));
+  document.getElementById("lpPlus").addEventListener("click", ()=>adjustLP(50));
+  document.getElementById("lpMinus100").addEventListener("click", ()=>adjustLP(-100));
+  document.getElementById("lpPlus100").addEventListener("click", ()=>adjustLP(100));
+  document.getElementById("lpCustomMinus").addEventListener("click", ()=>{
+    const v = Number(document.getElementById("lpCustomInput").value);
+    if(v) adjustLP(-Math.abs(v));
+  });
+  document.getElementById("lpCustomPlus").addEventListener("click", ()=>{
+    const v = Number(document.getElementById("lpCustomInput").value);
+    if(v) adjustLP(Math.abs(v));
+  });
+
+  async function adjustCount(field, delta){
+    const room = await loadRoom(); if(!room) return;
+    const p = room.players[mySeat()];
+    p[field] = Math.max(0, p[field] + delta);
+    await saveRoom(room); tick();
+  }
+  document.getElementById("deckMinus").addEventListener("click", ()=>adjustCount("deckCount", -1));
+  document.getElementById("deckPlus").addEventListener("click", ()=>adjustCount("deckCount", 1));
+  document.getElementById("extraMinus").addEventListener("click", ()=>adjustCount("extraCount", -1));
+  document.getElementById("extraPlus").addEventListener("click", ()=>adjustCount("extraCount", 1));
+
+  document.getElementById("passTurnBtn").addEventListener("click", async ()=>{
+    const room = await loadRoom(); if(!room) return;
+    if(room.turn.activeSeat !== mySeat()) return;
+    const next = mySeat() === "p1" ? "p2" : "p1";
+    room.turn.activeSeat = next;
+    room.turn.phase = "Draw";
+    if(next === "p1") room.turn.turnNumber += 1;
+    room.log.push(room.players[mySeat()].name + " ended their turn.");
+    await saveRoom(room); tick();
+  });
+
+  document.getElementById("rollBtn").addEventListener("click", async ()=>{
+    const room = await loadRoom(); if(!room) return;
+    const coin = Math.random() < 0.5 ? "Heads" : "Tails";
+    const die = 1 + Math.floor(Math.random()*6);
+    room.log.push(session.name + " flipped a coin ("+coin+") and rolled a die ("+die+").");
+    await saveRoom(room); tick();
+  });
+
+  document.getElementById("addCardBtn").addEventListener("click", ()=> openHandSearchModal());
+  document.getElementById("createTokenBtn").addEventListener("click", ()=>{
+    document.getElementById("cardModalTitle").textContent = "Create a Token";
+    document.getElementById("cardModalBody").innerHTML =
+      '<label style="font-size:11px;color:var(--muted);">Token name</label>' +
+      '<input type="text" id="tokenNameInput" value="Token" style="width:100%;padding:6px 8px;margin-bottom:8px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<label style="font-size:11px;color:var(--muted);">ATK</label>' +
+      '<input type="number" id="tokenAtkInput" value="0" style="width:100%;padding:6px 8px;margin-bottom:8px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<label style="font-size:11px;color:var(--muted);">DEF</label>' +
+      '<input type="number" id="tokenDefInput" value="0" style="width:100%;padding:6px 8px;margin-bottom:10px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<div class="action-grid">' +
+        '<button class="btn" data-tact="atk">Special Summon (Attack)</button>' +
+        '<button class="btn" data-tact="def">Special Summon (Defense)</button>' +
+      '</div>';
+    document.getElementById("cardModalBody").querySelectorAll("button[data-tact]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const name = document.getElementById("tokenNameInput").value.trim() || "Token";
+        const atk = Number(document.getElementById("tokenAtkInput").value) || 0;
+        const def = Number(document.getElementById("tokenDefInput").value) || 0;
+        const card = {
+          id: "token-"+Date.now(), name, type: "Token Monster",
+          atk, def, desc: "A Token created to represent a card effect — no real card exists for this, so there's no printed art or text.",
+          image_url_small: "", image_full: "", position: "attack",
+        };
+        pendingZoneAction = { act: btn.getAttribute("data-tact"), card, seat: mySeat(), source: { type: "token" } };
+        openZonePicker(mySeat(), "Choose a zone for the Token");
+      });
+    });
+    document.getElementById("cardModalOverlay").classList.add("show");
+  });
+
+  function openHandSearchModal(){
+    const title = document.getElementById("cardModalTitle");
+    const body = document.getElementById("cardModalBody");
+    title.textContent = "Find a card";
+    body.innerHTML =
+      '<div class="search-row"><input type="text" id="handSearchInput" placeholder="Card name"><button class="btn btn-primary" id="handSearchBtn">Search</button></div>' +
+      '<div id="handSearchResults"></div>';
+    document.getElementById("cardModalOverlay").classList.add("show");
+    document.getElementById("handSearchBtn").addEventListener("click", runHandSearch);
+    document.getElementById("handSearchInput").addEventListener("keydown", e=>{ if(e.key==="Enter") runHandSearch(); });
+    document.getElementById("handSearchInput").focus();
+  }
+
+  async function runHandSearch(){
+    const q = document.getElementById("handSearchInput").value.trim();
+    const box = document.getElementById("handSearchResults");
+    if(!q) return;
+    box.innerHTML = '<div class="loading-txt">Searching the card database…</div>';
+    try{
+      const cards = await searchCardsAPI(q);
+      if(!cards.length){ box.innerHTML = '<div class="empty-txt">No cards matched "'+escapeHtml(q)+'".</div>'; return; }
+      box.innerHTML = '<div class="results-list">' + cards.map(c=>
+        '<div class="result-item" data-pick="'+c.id+'"><img src="'+c.image_url_small+'" alt=""><div class="info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+(c.atk!==undefined?(" · ATK "+c.atk+" / DEF "+c.def):"")+'</span></div></div>'
+      ).join("") + '</div>';
+      box.querySelectorAll("[data-pick]").forEach(el=>{
+        const card = cards.find(c=>String(c.id)===el.getAttribute("data-pick"));
+        el.addEventListener("click", ()=>{
+          closeCardModal();
+          myHand.push(card);
+          saveHand();
+          tick();
+        });
+      });
+    }catch(e){
+      box.innerHTML = '<div class="empty-txt">Couldn\'t reach the card database right now. You can still track the duel by hand.</div>';
+    }
+  }
+
+  function openHandCardModal(idx){
+    pendingHandCardIdx = idx;
+    const card = myHand[idx];
+    const isST = card.type && /Spell|Trap/i.test(card.type);
+    const isFieldSpell = card.type && /Field Spell/i.test(card.type);
+    const actions = isST
+      ? ('<button class="btn" data-act="atk">Activate (face-up)</button>' +
+         '<button class="btn" data-act="fd">Set face-down</button>' +
+         (isFieldSpell ? '<button class="btn" data-act="field">Play as Field Spell</button>' : '') +
+         '<button class="btn" data-act="gy">Send to Graveyard</button>' +
+         '<button class="btn" data-act="ban">Banish</button>')
+      : ('<button class="btn" data-act="atk">Play face-up (Attack)</button>' +
+         '<button class="btn" data-act="def">Play face-up (Defense)</button>' +
+         '<button class="btn" data-act="fd">Set face-down</button>' +
+         '<button class="btn" data-act="gy">Send to Graveyard</button>' +
+         '<button class="btn" data-act="ban">Banish</button>');
+    document.getElementById("cardModalTitle").textContent = card.name;
+    document.getElementById("cardModalBody").innerHTML =
+      '<img class="zoom-img" src="'+card.image_full+'" alt="">' +
+      '<div class="zoom-effect">'+escapeHtml(card.desc||"")+'</div>' +
+      '<div class="action-grid">' + actions + '</div>';
+    document.getElementById("cardModalBody").querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.addEventListener("click", ()=> handleHandAction(btn.getAttribute("data-act")));
+    });
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  async function handleHandAction(act){
+    const card = myHand[pendingHandCardIdx];
+    const room = await loadRoom(); if(!room){ closeCardModal(); return; }
+    const seat = mySeat();
+
+    if(act === "gy" || act === "ban"){
+      const pile = act === "gy" ? room.gy : room.banished;
+      pile[seat].push(card);
+      room.log.push(room.players[seat].name + (act==="gy" ? " sent " : " banished ") + card.name + (act==="gy"?" to the Graveyard.":"."));
+      myHand.splice(pendingHandCardIdx,1);
+      await saveHand(); await saveRoom(room);
+      closeCardModal(); tick();
+      return;
+    }
+    if(act === "field"){
+      room.board[seat+"-field"] = Object.assign({}, card, {position:"attack"});
+      room.log.push(room.players[seat].name + " activated Field Spell " + card.name + ".");
+      myHand.splice(pendingHandCardIdx,1);
+      await saveHand(); await saveRoom(room);
+      closeCardModal(); tick();
+      return;
+    }
+    pendingZoneAction = { act, card, seat, source: { type:"hand", idx: pendingHandCardIdx } };
+    openZonePicker(seat, act === "fd" ? "Choose where to set it face-down" : "Choose an empty zone");
+  }
+
+  function openZonePicker(seat, promptText){
+    document.getElementById("cardModalTitle").textContent = promptText;
+    const room = currentRoom;
+    const card = pendingZoneAction.card;
+    const isST = card.type && /Spell|Trap/i.test(card.type);
+    const prefix = isST ? "st" : "m";
+    const count = isST ? ST_SLOTS : MONSTER_SLOTS;
+    let html = '<div class="action-grid" style="grid-template-columns:repeat(5,1fr);">';
+    for(let i=1;i<=count;i++){
+      const zid = seat+"-"+prefix+i;
+      const occupied = !!room.board[zid];
+      html += '<button class="btn" data-zone="'+zid+'" '+(occupied?"disabled":"")+' style="padding:8px 4px;font-size:12px;">'+ (occupied?"Taken":"Zone "+i) +'</button>';
+    }
+    html += '</div>';
+    if(!isST && isExtraType(card.type)){
+      html += '<div style="font-size:11px;color:var(--muted);margin:8px 0 4px;">Extra Monster Zone (only one may be in use at a time):</div>';
+      html += '<div class="action-grid">';
+      ["emz1","emz2"].forEach((zid,i)=>{
+        const occupied = !!room.board[zid];
+        const blocked = !occupied && !canUseEmz(seat, zid);
+        const label = occupied ? "Taken" : (blocked ? "Already using the other" : "Extra Monster Zone "+(i+1));
+        html += '<button class="btn" data-zone="'+zid+'" '+((occupied||blocked)?"disabled":"")+' style="padding:8px 4px;font-size:12px;">'+label+'</button>';
+      });
+      html += '</div>';
+    }
+    document.getElementById("cardModalBody").innerHTML = html;
+    document.getElementById("cardModalBody").querySelectorAll("button[data-zone]").forEach(btn=>{
+      btn.addEventListener("click", ()=> placeCardInZone(btn.getAttribute("data-zone")));
+    });
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  async function placeCardInZone(zoneId){
+    const { act, card, seat, source } = pendingZoneAction;
+    const room = await loadRoom(); if(!room) return;
+    if(act === "fd"){
+      // Counters are physical tokens that sit on top of a card in real play,
+      // so they're still visible to both players even face-down — only the
+      // card's identity is hidden. Keep counters in the shared/public part
+      // of the board entry; everything else about the card stays private.
+      room.board[zoneId] = { faceDown:true, ownerSeat:seat, counters: card.counters || [] };
+      myFaceDown[zoneId] = card;
+      await saveFaceDown();
+      room.log.push(room.players[seat].name + " set a card face-down.");
+    }else{
+      // ownerSeat is redundant for normal p1-/p2- prefixed zones (zoneOwner()
+      // reads the prefix directly) but it's the ONLY way zoneOwner() can
+      // identify who controls a face-up Extra Monster Zone card, since "emz1"
+      // has no seat in its name. Without this, a face-up EMZ monster's owner
+      // could never Activate/Switch/etc. on it — isOwner would always be
+      // false. Setting it unconditionally fixes EMZ and is a no-op elsewhere.
+      room.board[zoneId] = Object.assign({}, card, { position: act === "def" ? "defense" : "attack", ownerSeat: seat });
+      room.log.push(room.players[seat].name + " played " + card.name + " (" + (act==="def"?"Defense":"Attack") + ").");
+    }
+    // Remove the card from wherever it actually came from — hand, Graveyard,
+    // or Banished — instead of always assuming hand (that assumption used to
+    // be hardcoded here and would have silently spliced the wrong card out
+    // of the hand if this function were ever reused for a non-hand source).
+    if(source.type === "hand"){
+      myHand.splice(source.idx, 1);
+      await saveHand();
+    }else if(source.type === "gy"){
+      room.gy[seat].splice(source.idx, 1);
+    }else if(source.type === "banished"){
+      room.banished[seat].splice(source.idx, 1);
+    }
+    await saveRoom(room);
+    pendingZoneAction = null;
+    closeCardModal(); tick();
+  }
+
+  async function openMaterialsView(zoneId){
+    const room = await loadRoom(); if(!room) return;
+    const card = room.board[zoneId];
+    if(!card){ openZoneModal(zoneId); return; }
+    const materials = card.materials || [];
+    const seat = mySeat();
+    const gyCards = room.gy[seat] || [];
+    document.getElementById("cardModalTitle").textContent = "Materials under " + card.name;
+    let html = materials.length
+      ? '<div style="margin-bottom:10px;">' + materials.map((m,i)=>
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+            '<span style="flex:1;">'+escapeHtml(m.name)+'</span>' +
+            '<button class="btn" data-detach="'+i+'" style="padding:4px 10px;">Detach to GY</button>' +
+          '</div>'
+        ).join("") + '</div>'
+      : '<div class="empty-txt" style="margin-bottom:10px;">Nothing attached as material yet.</div>';
+    html += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Attach from your Graveyard:</div>';
+    html += gyCards.length
+      ? '<div class="action-grid">' + gyCards.map((c,i)=>'<button class="btn" data-attach="'+i+'">'+escapeHtml(c.name)+'</button>').join("") + '</div>'
+      : '<div class="empty-txt">Your Graveyard is empty.</div>';
+    html += '<button class="btn btn-block" id="materialsBackBtn" style="margin-top:10px;">&larr; Back</button>';
+    document.getElementById("cardModalBody").innerHTML = html;
+    document.getElementById("cardModalBody").querySelectorAll("button[data-detach]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const idx = Number(btn.getAttribute("data-detach"));
+        const room2 = await loadRoom(); if(!room2) return;
+        const cur = room2.board[zoneId]; if(!cur || !cur.materials) { tick(); return; }
+        const [material] = cur.materials.splice(idx, 1);
+        room2.gy[seat] = room2.gy[seat] || [];
+        room2.gy[seat].push(material);
+        room2.log.push(room2.players[seat].name + " detached " + material.name + " from " + cur.name + " to the Graveyard.");
+        await saveRoom(room2);
+        openMaterialsView(zoneId);
+      });
+    });
+    document.getElementById("cardModalBody").querySelectorAll("button[data-attach]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const idx = Number(btn.getAttribute("data-attach"));
+        const room2 = await loadRoom(); if(!room2) return;
+        const cur = room2.board[zoneId]; if(!cur) return;
+        const [material] = room2.gy[seat].splice(idx, 1);
+        cur.materials = cur.materials || [];
+        cur.materials.push(material);
+        room2.log.push(room2.players[seat].name + " attached " + material.name + " to " + cur.name + " as material.");
+        await saveRoom(room2);
+        openMaterialsView(zoneId);
+      });
+    });
+    document.getElementById("materialsBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  async function openCounterView(zoneId){
+    const room = await loadRoom(); if(!room) return;
+    const card = room.board[zoneId];
+    if(!card){ openZoneModal(zoneId); return; }
+    const label = card.name || "the face-down card"; // face-down entries have no .name — identity stays hidden, only counters are public
+    const counters = card.counters || [];
+    document.getElementById("cardModalTitle").textContent = "Counters on " + label;
+    const rows = counters.length
+      ? counters.map((c,i)=>
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+            '<span style="flex:1;">'+escapeHtml(c.name)+': '+c.count+'</span>' +
+            '<button class="btn" data-cact="dec" data-idx="'+i+'" style="padding:4px 10px;">−</button>' +
+            '<button class="btn" data-cact="inc" data-idx="'+i+'" style="padding:4px 10px;">+</button>' +
+            '<button class="btn" data-cact="del" data-idx="'+i+'" style="padding:4px 10px;">Remove</button>' +
+          '</div>'
+        ).join("")
+      : '<div class="empty-txt">No counters yet.</div>';
+    document.getElementById("cardModalBody").innerHTML =
+      rows +
+      '<input type="text" id="newCounterName" placeholder="Counter name (e.g. Spell Counter)" style="width:100%;padding:6px 8px;margin:10px 0 6px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<button class="btn btn-block" id="addCounterBtn">Add Counter</button>' +
+      '<button class="btn btn-block" id="counterBackBtn" style="margin-top:8px;">&larr; Back</button>';
+    document.getElementById("cardModalBody").querySelectorAll("button[data-cact]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const idx = Number(btn.getAttribute("data-idx"));
+        const cact = btn.getAttribute("data-cact");
+        const room2 = await loadRoom(); if(!room2) return;
+        const cur = room2.board[zoneId]; if(!cur || !cur.counters) { tick(); return; }
+        if(cact === "inc") cur.counters[idx].count++;
+        else if(cact === "dec") cur.counters[idx].count = Math.max(0, cur.counters[idx].count-1);
+        else if(cact === "del") cur.counters.splice(idx,1);
+        room2.log.push(room2.players[mySeat()].name + " updated counters on " + (cur.name || "a face-down card") + ".");
+        await saveRoom(room2);
+        openCounterView(zoneId);
+      });
+    });
+    document.getElementById("addCounterBtn").addEventListener("click", async ()=>{
+      const name = document.getElementById("newCounterName").value.trim();
+      if(!name) return;
+      const room2 = await loadRoom(); if(!room2) return;
+      const cur = room2.board[zoneId]; if(!cur) return;
+      cur.counters = cur.counters || [];
+      cur.counters.push({ name, count: 1 });
+      room2.log.push(room2.players[mySeat()].name + " added a " + name + " to " + (cur.name || "a face-down card") + ".");
+      await saveRoom(room2);
+      openCounterView(zoneId);
+    });
+    document.getElementById("counterBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  // "Move to..." — a card effect can reposition a monster to a different
+  // Monster Zone without it leaving the field (Yugipedia's own reference
+  // example is "Senet Switch"). Preserves all state (position, stat mods,
+  // counters, negated) and re-points any equips that were attached to it.
+  function openMoveZonePicker(zoneId, card){
+    const seat = mySeat();
+    const targets = [];
+    for(let i=1;i<=MONSTER_SLOTS;i++){
+      const zid = seat+"-m"+i;
+      if(zid!==zoneId && !currentRoom.board[zid]) targets.push({zid, label:"Zone "+i}); // label uses the REAL zone number, not the filtered array index
+    }
+    if(isExtraType(card.type)){
+      ["emz1","emz2"].forEach((zid,i)=>{
+        if(zid===zoneId) return;
+        if(!currentRoom.board[zid] && canUseEmz(seat, zid)) targets.push({zid, label:"Extra Monster Zone "+(i+1)});
+      });
+    }
+    document.getElementById("cardModalTitle").textContent = "Move " + card.name + " to...";
+    if(!targets.length){
+      document.getElementById("cardModalBody").innerHTML =
+        '<div class="empty-txt">No empty zones to move to.</div>' +
+        '<button class="btn btn-block" id="moveBackBtn" style="margin-top:10px;">&larr; Back</button>';
+    }else{
+      document.getElementById("cardModalBody").innerHTML =
+        '<div class="action-grid">' + targets.map(t=>'<button class="btn" data-target="'+t.zid+'">'+t.label+'</button>').join("") + '</div>' +
+        '<button class="btn btn-block" id="moveBackBtn" style="margin-top:10px;">&larr; Back</button>';
+      document.getElementById("cardModalBody").querySelectorAll("button[data-target]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const targetZid = btn.getAttribute("data-target");
+          const room = await loadRoom(); if(!room) return;
+          const cur = room.board[zoneId]; if(!cur) return;
+          room.board[targetZid] = cur;
+          room.board[zoneId] = null;
+          for(const zid in room.board){
+            if(room.board[zid] && room.board[zid].equippedTo === zoneId) room.board[zid].equippedTo = targetZid;
+          }
+          room.log.push(room.players[seat].name + " moved " + cur.name + " to another Monster Zone.");
+          await saveRoom(room);
+          closeCardModal(); tick();
+        });
+      });
+    }
+    document.getElementById("moveBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  async function handleUnequip(zoneId, card){
+    const isMonsterEquip = !(card.type && /Spell|Trap/i.test(card.type));
+    if(!isMonsterEquip){
+      // Ordinary Equip Spell/Trap: just clear the link, it stays in its own Spell/Trap Zone.
+      const room = await loadRoom(); if(!room) return;
+      const cur = room.board[zoneId]; if(!cur) return;
+      delete cur.equippedTo;
+      room.log.push(room.players[mySeat()].name + " unequipped " + cur.name + ".");
+      await saveRoom(room);
+      closeCardModal(); tick();
+      return;
+    }
+    // Union monster: real rule is it either returns to a Monster Zone or,
+    // if none is free, goes to the Graveyard — it doesn't just sit there
+    // unequipped in its Spell/Trap Zone.
+    const seat = mySeat();
+    const freeMonsterZones = [];
+    for(let i=1;i<=MONSTER_SLOTS;i++){
+      const zid = seat+"-m"+i;
+      if(!currentRoom.board[zid]) freeMonsterZones.push({zid, label:"Zone "+i});
+    }
+    document.getElementById("cardModalTitle").textContent = "Unequip " + card.name;
+    document.getElementById("cardModalBody").innerHTML =
+      '<div class="action-grid">' +
+        freeMonsterZones.map(t=>'<button class="btn" data-unqzone="'+t.zid+'">'+t.label+'</button>').join("") +
+        '<button class="btn" data-unqzone="gy">Send to Graveyard</button>' +
+      '</div>' +
+      '<button class="btn btn-block" id="unequipBackBtn" style="margin-top:10px;">&larr; Back</button>';
+    document.getElementById("cardModalBody").querySelectorAll("button[data-unqzone]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const dest = btn.getAttribute("data-unqzone");
+        const room = await loadRoom(); if(!room) return;
+        const cur = room.board[zoneId]; if(!cur) return;
+        delete cur.equippedTo;
+        room.board[zoneId] = null;
+        if(dest === "gy"){
+          room.gy[seat] = room.gy[seat] || [];
+          room.gy[seat].push(cur);
+          room.log.push(room.players[seat].name + " unequipped " + cur.name + " — no empty Monster Zone, so it went to the Graveyard.");
+        }else{
+          room.board[dest] = Object.assign({}, cur, { position:"attack", ownerSeat: seat });
+          room.log.push(room.players[seat].name + " unequipped " + cur.name + " and Special Summoned it back to a Monster Zone.");
+        }
+        await saveRoom(room);
+        closeCardModal(); tick();
+      });
+    });
+    document.getElementById("unequipBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  function openStatModifyView(zoneId, card){
+    const atkMod = card.atkMod || 0, defMod = card.defMod || 0;
+    document.getElementById("cardModalTitle").textContent = "Modify " + card.name + "'s ATK/DEF";
+    document.getElementById("cardModalBody").innerHTML =
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Printed: ATK '+(card.atk!=null?card.atk:"?")+' / DEF '+(card.def!=null?card.def:"?")+
+      '<br>Current modifier: ATK '+(atkMod>=0?"+":"")+atkMod+' / DEF '+(defMod>=0?"+":"")+defMod+'</div>' +
+      '<label style="font-size:11px;color:var(--muted);">ATK change (use a minus sign to subtract)</label>' +
+      '<input type="number" id="atkDeltaInput" placeholder="e.g. 500 or -500" style="width:100%;padding:6px 8px;margin-bottom:8px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<label style="font-size:11px;color:var(--muted);">DEF change (use a minus sign to subtract)</label>' +
+      '<input type="number" id="defDeltaInput" placeholder="e.g. 500 or -500" style="width:100%;padding:6px 8px;margin-bottom:10px;background:var(--bg-deep);border:1px solid var(--zone-border);color:var(--parchment);border-radius:4px;">' +
+      '<div class="action-grid">' +
+        '<button class="btn" id="applyStatDeltaBtn">Apply change</button>' +
+        '<button class="btn" id="resetStatBtn">Reset to printed</button>' +
+        '<button class="btn" id="statBackBtn">&larr; Back</button>' +
+      '</div>';
+    document.getElementById("applyStatDeltaBtn").addEventListener("click", async ()=>{
+      const dAtk = Number(document.getElementById("atkDeltaInput").value) || 0;
+      const dDef = Number(document.getElementById("defDeltaInput").value) || 0;
+      if(!dAtk && !dDef){ openZoneModal(zoneId); return; }
+      const room = await loadRoom(); if(!room) return;
+      const cur = room.board[zoneId]; if(!cur) return;
+      cur.atkMod = (cur.atkMod || 0) + dAtk;
+      cur.defMod = (cur.defMod || 0) + dDef;
+      room.log.push(room.players[mySeat()].name + " changed " + cur.name + "'s stats (ATK " + (dAtk>=0?"+":"") + dAtk + ", DEF " + (dDef>=0?"+":"") + dDef + ").");
+      await saveRoom(room);
+      closeCardModal(); tick();
+    });
+    document.getElementById("resetStatBtn").addEventListener("click", async ()=>{
+      const room = await loadRoom(); if(!room) return;
+      const cur = room.board[zoneId]; if(!cur) return;
+      cur.atkMod = 0; cur.defMod = 0;
+      room.log.push(room.players[mySeat()].name + " reset " + cur.name + "'s stats to printed values.");
+      await saveRoom(room);
+      closeCardModal(); tick();
+    });
+    document.getElementById("statBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  function openEquipPicker(zoneId, card){
+    const seat = mySeat();
+    const targets = [];
+    ["p1","p2"].forEach(s=>{
+      for(let i=1;i<=MONSTER_SLOTS;i++){
+        const zid = s+"-m"+i;
+        if(zid===zoneId) continue;
+        const v = currentRoom.board[zid];
+        if(v && !v.faceDown) targets.push({zid, name:v.name + (s!==seat?" (opponent's)":"")});
+      }
+    });
+    ["emz1","emz2"].forEach(zid=>{
+      if(zid===zoneId) return;
+      const v = currentRoom.board[zid];
+      if(v && !v.faceDown) targets.push({zid, name:v.name + (v.ownerSeat!==seat?" (opponent's)":"")});
+    });
+    document.getElementById("cardModalTitle").textContent = "Equip " + card.name + " to...";
+    if(!targets.length){
+      document.getElementById("cardModalBody").innerHTML =
+        '<div class="empty-txt">There are no face-up monsters on the field to equip this to.</div>' +
+        '<button class="btn btn-block" id="equipBackBtn" style="margin-top:10px;">&larr; Back</button>';
+    }else{
+      document.getElementById("cardModalBody").innerHTML =
+        '<div class="action-grid">' + targets.map(t=>'<button class="btn" data-target="'+t.zid+'">'+escapeHtml(t.name)+'</button>').join("") + '</div>' +
+        '<button class="btn btn-block" id="equipBackBtn" style="margin-top:10px;">&larr; Back</button>';
+      document.getElementById("cardModalBody").querySelectorAll("button[data-target]").forEach(btn=>{
+        btn.addEventListener("click", async ()=>{
+          const targetZid = btn.getAttribute("data-target");
+          const room = await loadRoom(); if(!room) return;
+          const cur = room.board[zoneId]; if(!cur) return;
+          const isMonsterEquip = !(cur.type && /Spell|Trap/i.test(cur.type));
+          let finalZoneId = zoneId;
+          if(isMonsterEquip && zoneId.indexOf("-st") === -1){
+            // Union monster: real rule is it moves INTO a Spell/Trap Zone and is
+            // treated as an Equip Card while attached — it doesn't just float
+            // off with no zone at all.
+            const ownerSeat = zoneOwner(zoneId) || seat;
+            let freeSt = null;
+            for(let i=1;i<=ST_SLOTS;i++){
+              const stZid = ownerSeat+"-st"+i;
+              if(!room.board[stZid]){ freeSt = stZid; break; }
+            }
+            if(!freeSt){
+              document.getElementById("cardModalBody").innerHTML =
+                '<div class="empty-txt">No empty Spell/Trap Zone available — this monster can\'t be equipped as a Union right now.</div>' +
+                '<button class="btn btn-block" id="equipBackBtn2" style="margin-top:10px;">&larr; Back</button>';
+              document.getElementById("equipBackBtn2").addEventListener("click", ()=> openZoneModal(zoneId));
+              return;
+            }
+            room.board[freeSt] = cur;
+            room.board[zoneId] = null;
+            finalZoneId = freeSt;
+          }
+          room.board[finalZoneId].equippedTo = targetZid;
+          const targetName = room.board[targetZid] ? room.board[targetZid].name : "a monster";
+          room.log.push(room.players[seat].name + " equipped " + cur.name + " to " + targetName + (isMonsterEquip ? " (moved to a Spell/Trap Zone as a Union monster)." : "."));
+          await saveRoom(room);
+          closeCardModal(); tick();
+        });
+      });
+    }
+    document.getElementById("equipBackBtn").addEventListener("click", ()=> openZoneModal(zoneId));
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  function openZoneModal(zoneId){
+    const room = currentRoom;
+    const val = room.board[zoneId];
+    const title = document.getElementById("cardModalTitle");
+    const body = document.getElementById("cardModalBody");
+
+    if(!val){
+      title.textContent = "Empty zone";
+      body.innerHTML = '<div class="empty-txt">Nothing here. Play a card from your hand to fill this zone.</div>';
+      document.getElementById("cardModalOverlay").classList.add("show");
+      return;
+    }
+    const isMyFaceDown = val.faceDown && val.ownerSeat === mySeat();
+    const isOpponentFaceDown = val.faceDown && val.ownerSeat !== mySeat();
+
+    if(isOpponentFaceDown){
+      title.textContent = "Face-down card";
+      body.innerHTML = '<div class="empty-txt">This card is set face-down by your opponent — only they can see what it is.</div>';
+      document.getElementById("cardModalOverlay").classList.add("show");
+      return;
+    }
+    if(isMyFaceDown){
+      const card = myFaceDown[zoneId];
+      const publicEntry = val; // {faceDown:true, ownerSeat, counters} — counters live here, visible even face-down
+      const isST = card && card.type && /Spell|Trap/i.test(card.type);
+      title.textContent = card ? card.name + " (face-down)" : "Your face-down card";
+      const flipButtons = isST
+        ? '<button class="btn" data-act="flip-atk">Activate (face-up)</button>'
+        : ('<button class="btn" data-act="flip-atk">Flip face-up (Attack)</button>' +
+           '<button class="btn" data-act="flip-def">Flip face-up (Defense)</button>');
+      body.innerHTML =
+        (card ? '<img class="zoom-img" src="'+card.image_full+'" alt=""><div class="zoom-effect">'+escapeHtml(card.desc||"")+'</div>' : "") +
+        (publicEntry.counters && publicEntry.counters.length
+          ? '<div class="equip-info"><span class="counter-icon">✦</span> Counters: '+publicEntry.counters.map(c=>escapeHtml(c.name)+' ×'+c.count).join(", ")+'</div>'
+          : "") +
+        '<div class="action-grid">' +
+          flipButtons +
+          '<button class="btn" data-act="counters-fd">Manage Counters</button>' +
+          '<button class="btn" data-act="gy">Send to Graveyard</button>' +
+          '<button class="btn" data-act="ban">Banish</button>' +
+          '<button class="btn" data-act="hand">Return to hand</button>' +
+          '<button class="btn" data-act="deck">Add to Deck</button>' +
+        '</div>';
+      body.querySelectorAll("button[data-act]").forEach(btn=>{
+        const act = btn.getAttribute("data-act");
+        if(act === "counters-fd") btn.addEventListener("click", ()=> openCounterView(zoneId));
+        else btn.addEventListener("click", ()=> handleZoneAction(zoneId, act, card));
+      });
+      document.getElementById("cardModalOverlay").classList.add("show");
+      return;
+    }
+    const isOwner = zoneOwner(zoneId) === mySeat();
+    const isST = val.type && /Spell|Trap/i.test(val.type);
+    const equippedCards = Object.keys(currentRoom.board).filter(zid => currentRoom.board[zid] && currentRoom.board[zid].equippedTo === zoneId);
+    title.textContent = val.name;
+    let html = (val.image_full ? '<img class="zoom-img" src="'+val.image_full+'" alt="">' : '<div class="zoom-img token-placeholder" style="aspect-ratio:59/86;border-radius:6px;">'+escapeHtml(val.name)+'</div>') + '<div class="zoom-effect">'+escapeHtml(val.desc||"")+'</div>';
+    if(val.equippedTo && currentRoom.board[val.equippedTo]){
+      html += '<div class="equip-info"><span class="chain-icon" style="background:'+colorForEquipGroup(val.equippedTo)+'">⛓</span> Equipped to: '+escapeHtml(currentRoom.board[val.equippedTo].name)+'</div>';
+    }
+    if(equippedCards.length){
+      html += '<div class="equip-info"><span class="chain-icon" style="background:'+colorForEquipGroup(zoneId)+'">⛓</span> Equipped to this: '+equippedCards.map(zid=>escapeHtml(currentRoom.board[zid].name)).join(", ")+'</div>';
+    }
+    if(val.counters && val.counters.length){
+      html += '<div class="equip-info"><span class="counter-icon">✦</span> Counters: '+val.counters.map(c=>escapeHtml(c.name)+' ×'+c.count).join(", ")+'</div>';
+    }
+    if(isOwner){
+      html += '<div class="action-grid">' +
+          '<button class="btn" data-act="activate">Activate effect</button>' +
+          (isST
+            ? '<button class="btn" data-act="setdown">Set face-down</button>'
+            : ('<button class="btn" data-act="toggle-pos">Switch position</button>' +
+               '<button class="btn" data-act="setdown">Set face-down</button>' +
+               '<button class="btn" data-act="modstats">Modify ATK/DEF</button>' +
+               '<button class="btn" data-act="movezone">Move to...</button>')) +
+          '<button class="btn" data-act="equip">Equip to...</button>' +
+          (val.equippedTo ? '<button class="btn" data-act="unequip">Unequip</button>' : '') +
+          '<button class="btn" data-act="counters">Manage Counters</button>' +
+          (!isST ? '<button class="btn" data-act="materials">Materials</button>' : '') +
+          '<button class="btn" data-act="negate">'+(val.negated?"Clear Negated":"Mark as Negated")+'</button>' +
+          '<button class="btn" data-act="gy">Send to Graveyard</button>' +
+          '<button class="btn" data-act="ban">Banish</button>' +
+          '<button class="btn" data-act="hand">Return to hand</button>' +
+          '<button class="btn" data-act="deck">Add to Deck</button>' +
+        '</div>';
+    }
+    body.innerHTML = html;
+    if(isOwner){
+      body.querySelectorAll("button[data-act]").forEach(btn=>{
+        const act = btn.getAttribute("data-act");
+        if(act === "modstats") btn.addEventListener("click", ()=> openStatModifyView(zoneId, val));
+        else if(act === "movezone") btn.addEventListener("click", ()=> openMoveZonePicker(zoneId, val));
+        else if(act === "equip") btn.addEventListener("click", ()=> openEquipPicker(zoneId, val));
+        else if(act === "counters") btn.addEventListener("click", ()=> openCounterView(zoneId));
+        else if(act === "materials") btn.addEventListener("click", ()=> openMaterialsView(zoneId));
+        else if(act === "negate") btn.addEventListener("click", async ()=>{
+          const room = await loadRoom(); if(!room) return;
+          const cur = room.board[zoneId]; if(!cur) return;
+          cur.negated = !cur.negated;
+          room.log.push(room.players[mySeat()].name + (cur.negated ? " marked " : " cleared the negated status on ") + cur.name + (cur.negated ? "'s effect as negated." : "."));
+          await saveRoom(room);
+          closeCardModal(); tick();
+        });
+        else if(act === "unequip") btn.addEventListener("click", ()=> handleUnequip(zoneId, val));
+        else btn.addEventListener("click", ()=> handleZoneAction(zoneId, act, val));
+      });
+    }
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+
+  function zoneOwner(zoneId){
+    if(zoneId.indexOf("emz") === 0) return currentRoom.board[zoneId] ? currentRoom.board[zoneId].ownerSeat : null;
+    return zoneId.split("-")[0];
+  }
+
+  // When a face-up monster leaves the field (or gets flipped back face-down),
+  // any card equipped to it must go too — an Equip Spell/Trap/Union monster
+  // can't stay on the field with nothing to equip to. Scans every zone for
+  // an equippedTo match rather than tracking a reverse-index, which is fine
+  // at this scale (at most a handful of zones).
+  function cascadeUnequipOnLeave(room, zoneId){
+    for(const zid in room.board){
+      const c = room.board[zid];
+      if(c && c.equippedTo === zoneId){
+        const owner = zoneOwner(zid) || mySeat();
+        room.gy[owner] = room.gy[owner] || [];
+        room.gy[owner].push(c);
+        room.board[zid] = null;
+        room.log.push(c.name + " was sent to the Graveyard (its equip target left the field).");
+      }
+    }
+  }
+
+  async function handleZoneAction(zoneId, act, card){
+    const room = await loadRoom(); if(!room) return;
+    const seat = mySeat();
+    if(act === "activate"){
+      room.log.push(room.players[seat].name + " activated the effect of " + card.name + ".");
+    }else if(act === "flip-atk"){
+      const priorPublic = room.board[zoneId];
+      room.board[zoneId] = Object.assign({}, card, { position:"attack", ownerSeat: seat, counters: (priorPublic && priorPublic.counters) || card.counters || [] });
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " flipped up " + card.name + " (Attack).");
+    }else if(act === "flip-def"){
+      const priorPublic = room.board[zoneId];
+      room.board[zoneId] = Object.assign({}, card, { position:"defense", ownerSeat: seat, counters: (priorPublic && priorPublic.counters) || card.counters || [] });
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " flipped up " + card.name + " (Defense).");
+    }else if(act === "toggle-pos"){
+      const cur = room.board[zoneId];
+      cur.position = cur.position === "attack" ? "defense" : "attack";
+      room.log.push(room.players[seat].name + " switched " + cur.name + " to " + cur.position + " position.");
+    }else if(act === "setdown"){
+      cascadeUnequipOnLeave(room, zoneId);
+      room.board[zoneId] = { faceDown:true, ownerSeat:seat, counters: card.counters || [] };
+      myFaceDown[zoneId] = card;
+      await saveFaceDown();
+      room.log.push(room.players[seat].name + " set " + card.name + " back face-down.");
+    }else if((act === "deck" || act === "gy" || act === "ban" || act === "hand") && String(card.id).startsWith("token-")){
+      // Real rule (confirmed straight from Konami's rulebook): Tokens don't
+      // go to the Deck, Graveyard, hand, or anywhere else — when they'd be
+      // destroyed or moved, they simply cease to exist. Sending one to any
+      // pile or your hand was a genuine bug; this makes it just vanish.
+      cascadeUnequipOnLeave(room, zoneId);
+      room.board[zoneId] = null;
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + "'s " + card.name + " Token was removed from the field.");
+    }else if(act === "deck"){
+      cascadeUnequipOnLeave(room, zoneId);
+      room.players[seat].deckCount = (room.players[seat].deckCount || 0) + 1;
+      room.board[zoneId] = null;
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " returned " + card.name + " to the Deck.");
+    }else if(act === "gy"){
+      cascadeUnequipOnLeave(room, zoneId);
+      room.gy[seat].push(card); room.board[zoneId] = null;
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " sent " + card.name + " to the Graveyard.");
+    }else if(act === "ban"){
+      cascadeUnequipOnLeave(room, zoneId);
+      room.banished[seat].push(card); room.board[zoneId] = null;
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " banished " + card.name + ".");
+    }else if(act === "hand"){
+      cascadeUnequipOnLeave(room, zoneId);
+      myHand.push(card); await saveHand();
+      room.board[zoneId] = null;
+      delete myFaceDown[zoneId]; await saveFaceDown();
+      room.log.push(room.players[seat].name + " returned " + card.name + " to hand.");
+    }
+    await saveRoom(room);
+    closeCardModal(); tick();
+  }
+
+  function openPileModal(seat, kind){
+    const list = (kind === "gy" ? currentRoom.gy[seat] : currentRoom.banished[seat]) || [];
+    renderPileList(seat, kind, list);
+    document.getElementById("cardModalOverlay").classList.add("show");
+  }
+  function renderPileList(seat, kind, list){
+    document.getElementById("cardModalTitle").textContent = (kind === "gy" ? "Graveyard" : "Banished") + " — " + (currentRoom.players[seat] ? currentRoom.players[seat].name : "");
+    const body = document.getElementById("cardModalBody");
+    if(!list.length){ body.innerHTML = '<div class="empty-txt">Empty.</div>'; return; }
+    body.innerHTML = '<div class="results-list">' + list.map((c,i)=>
+      '<div class="result-item" data-pileidx="'+i+'" style="cursor:pointer;"><img src="'+c.image_url_small+'" alt=""><div class="info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+'</span></div></div>'
+    ).join("") + '</div>';
+    body.querySelectorAll("[data-pileidx]").forEach(el=>{
+      const i = Number(el.getAttribute("data-pileidx"));
+      el.addEventListener("click", ()=> renderPileCardDetail(seat, kind, list, i));
+    });
+  }
+  function renderPileCardDetail(seat, kind, list, idx){
+    const card = list[idx];
+    const isOwner = seat === mySeat();
+    const otherPile = kind === "gy" ? "banished" : "gy";
+    const otherPileLabel = kind === "gy" ? "Banish" : "Add to Graveyard";
+    document.getElementById("cardModalTitle").textContent = card.name;
+    let html =
+      '<img class="zoom-img" src="'+card.image_full+'" alt="">' +
+      '<div class="zoom-effect">'+escapeHtml(card.desc||"")+'</div>';
+    if(isOwner){
+      html += '<div class="action-grid">' +
+          '<button class="btn" data-pileact="hand">Add to Hand</button>' +
+          '<button class="btn" data-pileact="deck">Add to Deck</button>' +
+          '<button class="btn" data-pileact="'+otherPile+'">'+otherPileLabel+'</button>' +
+          '<button class="btn" data-pileact="field">Add to Field</button>' +
+        '</div>';
+    }
+    html += '<button class="btn btn-block" id="pileBackBtn" style="margin-top:10px;">&larr; Back to list</button>';
+    document.getElementById("cardModalBody").innerHTML = html;
+    document.getElementById("pileBackBtn").addEventListener("click", ()=> renderPileList(seat, kind, list));
+    if(isOwner){
+      document.getElementById("cardModalBody").querySelectorAll("button[data-pileact]").forEach(btn=>{
+        btn.addEventListener("click", ()=> handlePileAction(btn.getAttribute("data-pileact"), seat, kind, idx, card));
+      });
+    }
+  }
+
+  async function handlePileAction(dest, seat, kind, idx, card){
+    if(dest === "field"){
+      promptFieldPlacementFromPile(seat, kind, idx, card);
+      return;
+    }
+    const room = await loadRoom(); if(!room) return;
+    const srcArr = kind === "gy" ? room.gy[seat] : room.banished[seat];
+    srcArr.splice(idx, 1);
+    if(dest === "hand"){
+      myHand.push(card); await saveHand();
+      room.log.push(room.players[seat].name + " added " + card.name + " to their hand from the " + (kind==="gy"?"Graveyard":"Banished pile") + ".");
+    }else if(dest === "deck"){
+      room.players[seat].deckCount = (room.players[seat].deckCount || 0) + 1;
+      room.log.push(room.players[seat].name + " returned " + card.name + " to the Deck from the " + (kind==="gy"?"Graveyard":"Banished pile") + ".");
+    }else if(dest === "gy"){
+      room.gy[seat].push(card);
+      room.log.push(room.players[seat].name + " sent " + card.name + " to the Graveyard.");
+    }else if(dest === "banished"){
+      room.banished[seat].push(card);
+      room.log.push(room.players[seat].name + " banished " + card.name + ".");
+    }
+    await saveRoom(room);
+    closeCardModal(); tick();
+  }
+
+  function promptFieldPlacementFromPile(seat, kind, idx, card){
+    const isST = card.type && /Spell|Trap/i.test(card.type);
+    const isFieldSpell = card.type && /Field Spell/i.test(card.type);
+    const actions = isST
+      ? ('<button class="btn" data-act="atk">Activate (face-up)</button>' +
+         '<button class="btn" data-act="fd">Set face-down</button>' +
+         (isFieldSpell ? '<button class="btn" data-act="field">Play as Field Spell</button>' : ''))
+      : ('<button class="btn" data-act="atk">Play face-up (Attack)</button>' +
+         '<button class="btn" data-act="def">Play face-up (Defense)</button>' +
+         '<button class="btn" data-act="fd">Set face-down</button>');
+    document.getElementById("cardModalTitle").textContent = "Play " + card.name + " to the field";
+    document.getElementById("cardModalBody").innerHTML = '<div class="action-grid">' + actions + '</div>';
+    document.getElementById("cardModalBody").querySelectorAll("button[data-act]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const act = btn.getAttribute("data-act");
+        if(act === "field"){
+          const room = await loadRoom(); if(!room) return;
+          const srcArr = kind === "gy" ? room.gy[seat] : room.banished[seat];
+          srcArr.splice(idx, 1);
+          room.board[seat+"-field"] = Object.assign({}, card, {position:"attack"});
+          room.log.push(room.players[seat].name + " activated Field Spell " + card.name + " from the " + (kind==="gy"?"Graveyard":"Banished pile") + ".");
+          await saveRoom(room);
+          closeCardModal(); tick();
+          return;
+        }
+        pendingZoneAction = { act, card, seat, source: { type: kind, idx } };
+        openZonePicker(seat, act === "fd" ? "Choose where to set it face-down" : "Choose an empty zone");
+      });
+    });
+  }
+
+  document.getElementById("closeCardModal").addEventListener("click", closeCardModal);
+  function closeCardModal(){
+    document.getElementById("cardModalOverlay").classList.remove("show");
+    pendingZoneAction = null;
+    pendingHandCardIdx = null;
+  }
+
+  // =====================================================================
+  // ========================== COLLECTION TAB ==========================
+  // =====================================================================
+  const COLLECTION_KEY = "ygo:collection";
+  let collection = {};
+
+  async function loadCollectionData(){
+    const raw = await safeGet(COLLECTION_KEY, false);
+    collection = raw ? JSON.parse(raw) : {};
+  }
+  async function saveCollectionData(){ await safeSet(COLLECTION_KEY, JSON.stringify(collection), false); }
+
+  function renderCollection(){
+    const ids = Object.keys(collection);
+    document.getElementById("collCount").textContent = ids.length;
+    const list = document.getElementById("collectionList");
+    if(!ids.length){ list.innerHTML = '<div class="empty-txt">Nothing added yet — search above to start building your collection.</div>'; return; }
+    const sorted = ids.map(id=>collection[id]).sort((a,b)=>a.name.localeCompare(b.name));
+    list.innerHTML = sorted.map(c=>
+      '<div class="card-row">' +
+        '<img src="'+c.image_url_small+'" alt="">' +
+        '<div class="card-row-info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+'</span></div>' +
+        '<div class="qty-stepper">' +
+          '<button class="lp-btn" data-collminus="'+c.id+'">−</button>' +
+          '<span>'+c.qty+'</span>' +
+          '<button class="lp-btn" data-collplus="'+c.id+'">+</button>' +
+        '</div>' +
+        '<button class="btn small btn-danger" data-collremove="'+c.id+'">Remove</button>' +
+      '</div>'
+    ).join("");
+    list.querySelectorAll("[data-collminus]").forEach(b=> b.addEventListener("click", ()=>adjustCollectionQty(b.getAttribute("data-collminus"),-1)));
+    list.querySelectorAll("[data-collplus]").forEach(b=> b.addEventListener("click", ()=>adjustCollectionQty(b.getAttribute("data-collplus"),1)));
+    list.querySelectorAll("[data-collremove]").forEach(b=> b.addEventListener("click", ()=>removeFromCollection(b.getAttribute("data-collremove"))));
+  }
+
+  function adjustCollectionQty(id, delta){
+    const c = collection[id]; if(!c) return;
+    c.qty += delta;
+    if(c.qty <= 0) delete collection[id];
+    saveCollectionData(); renderCollection();
+  }
+  function removeFromCollection(id){ delete collection[id]; saveCollectionData(); renderCollection(); }
+  function addToCollection(card){
+    if(collection[card.id]) collection[card.id].qty += 1;
+    else collection[card.id] = Object.assign({}, card, {qty:1});
+    saveCollectionData(); renderCollection();
+  }
+
+  document.getElementById("collSearchBtn").addEventListener("click", async ()=>{
+    const q = document.getElementById("collSearchInput").value.trim();
+    const box = document.getElementById("collSearchResults");
+    if(!q) return;
+    box.innerHTML = '<div class="loading-txt">Searching…</div>';
+    try{
+      const cards = await searchCardsAPI(q);
+      if(!cards.length){ box.innerHTML = '<div class="empty-txt">No matches.</div>'; return; }
+      box.innerHTML = '<div class="results-list">' + cards.map(c=>
+        '<div class="result-item"><img src="'+c.image_url_small+'" alt=""><div class="info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+'</span></div><button class="btn small btn-primary" data-addcoll="'+c.id+'">Add</button></div>'
+      ).join("") + '</div>';
+      box.querySelectorAll("[data-addcoll]").forEach(btn=>{
+        const card = cards.find(c=>String(c.id)===btn.getAttribute("data-addcoll"));
+        btn.addEventListener("click", ()=> addToCollection(card));
+      });
+    }catch(e){
+      box.innerHTML = '<div class="empty-txt">Couldn\'t reach the card database. Try again shortly.</div>';
+    }
+  });
+  document.getElementById("collSearchInput").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("collSearchBtn").click(); });
+
+  document.getElementById("clearCollectionBtn").addEventListener("click", (e)=>{
+    confirmClick(e.target, ()=>{ collection = {}; saveCollectionData(); renderCollection(); });
+  });
+
+  // =====================================================================
+  // ============================ DECKS TAB =============================
+  // =====================================================================
+  const DECKS_KEY = "ygo:decks";
+  let decks = [];
+  let currentDeckId = null;
+
+  async function loadDecksData(){
+    const raw = await safeGet(DECKS_KEY, false);
+    decks = raw ? JSON.parse(raw) : [];
+  }
+  async function saveDecksData(){ await safeSet(DECKS_KEY, JSON.stringify(decks), false); }
+
+  function renderDecksList(){
+    const wrap = document.getElementById("decksList");
+    if(!decks.length){ wrap.innerHTML = '<div class="empty-txt">No decks yet — create one to get started.</div>'; return; }
+    wrap.innerHTML = decks.map(d=>
+      '<div class="deck-card">' +
+        '<div class="deck-card-name">'+escapeHtml(d.name)+'</div>' +
+        '<div class="meta-pills"><span class="meta-pill">Main '+sumQty(d.main)+'</span><span class="meta-pill">Extra '+sumQty(d.extra)+'</span><span class="meta-pill">Side '+sumQty(d.side)+'</span></div>' +
+        '<div class="row" style="gap:6px;margin-top:10px;">' +
+          '<button class="btn small" data-open="'+d.id+'">Open</button>' +
+          '<button class="btn small btn-danger" data-del="'+d.id+'">Delete</button>' +
+        '</div>' +
+      '</div>'
+    ).join("");
+    wrap.querySelectorAll("[data-open]").forEach(b=> b.addEventListener("click", ()=> openDeckEditor(b.getAttribute("data-open"))));
+    wrap.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=> confirmClick(b, ()=>{
+      decks = decks.filter(d=>d.id!==b.getAttribute("data-del"));
+      saveDecksData(); renderDecksList();
+    })));
+  }
+
+  document.getElementById("newDeckBtn").addEventListener("click", ()=>{
+    const row = document.getElementById("newDeckRow");
+    row.style.display = row.style.display === "flex" ? "none" : "flex";
+    document.getElementById("newDeckNameInput").focus();
+  });
+  document.getElementById("createDeckCancelBtn").addEventListener("click", ()=>{
+    document.getElementById("newDeckRow").style.display = "none";
+    document.getElementById("newDeckNameInput").value = "";
+  });
+  document.getElementById("createDeckConfirmBtn").addEventListener("click", ()=>{
+    const name = document.getElementById("newDeckNameInput").value.trim() || "New Deck";
+    const id = "d" + Date.now() + Math.floor(Math.random()*1000);
+    decks.push({ id, name, main:[], extra:[], side:[] });
+    saveDecksData();
+    document.getElementById("newDeckRow").style.display = "none";
+    document.getElementById("newDeckNameInput").value = "";
+    renderDecksList();
+    openDeckEditor(id);
+  });
+
+  function openDeckEditor(id){
+    currentDeckId = id;
+    document.getElementById("decksListPage").style.display = "none";
+    document.getElementById("deckEditorPage").style.display = "block";
+    const deck = decks.find(d=>d.id===id);
+    document.getElementById("deckNameInput").value = deck.name;
+    document.getElementById("deckSearchResults").innerHTML = "";
+    document.getElementById("deckMsg").textContent = "";
+    renderDeckEditor();
+  }
+  document.getElementById("backToDecksBtn").addEventListener("click", ()=>{
+    document.getElementById("deckEditorPage").style.display = "none";
+    document.getElementById("decksListPage").style.display = "block";
+    currentDeckId = null;
+    renderDecksList();
+  });
+  document.getElementById("renameDeckBtn").addEventListener("click", ()=>{
+    const deck = decks.find(d=>d.id===currentDeckId); if(!deck) return;
+    deck.name = document.getElementById("deckNameInput").value.trim() || deck.name;
+    saveDecksData();
+  });
+  document.getElementById("deleteDeckBtn").addEventListener("click", (e)=>{
+    confirmClick(e.target, ()=>{
+      decks = decks.filter(d=>d.id!==currentDeckId);
+      saveDecksData();
+      document.getElementById("deckEditorPage").style.display = "none";
+      document.getElementById("decksListPage").style.display = "block";
+      currentDeckId = null;
+      renderDecksList();
+    });
+  });
+
+  function showDeckMsg(text){
+    const el = document.getElementById("deckMsg");
+    el.textContent = text;
+    setTimeout(()=>{ if(el.textContent === text) el.textContent = ""; }, 3500);
+  }
+
+  function totalCopiesByName(deck, name){
+    return ["main","extra","side"].reduce((s,sec)=> s + deck[sec].filter(c=>c.name===name).reduce((a,c)=>a+c.qty,0), 0);
+  }
+
+  function addCardToDeck(deckId, card, section){
+    const deck = decks.find(d=>d.id===deckId); if(!deck) return;
+    if(totalCopiesByName(deck, card.name) >= 3){
+      showDeckMsg('You already have 3 copies of "' + card.name + '" in this deck.');
+      return;
+    }
+    const arr = deck[section];
+    const existing = arr.find(c=>c.id===card.id);
+    if(existing) existing.qty += 1;
+    else arr.push(Object.assign({}, card, {qty:1}));
+    saveDecksData();
+    renderDeckEditor();
+  }
+
+  function adjustDeckCardQty(deckId, section, id, delta){
+    const deck = decks.find(d=>d.id===deckId); if(!deck) return;
+    const arr = deck[section];
+    const entry = arr.find(c=>c.id===id); if(!entry) return;
+    if(delta > 0 && totalCopiesByName(deck, entry.name) >= 3){
+      showDeckMsg('You already have 3 copies of "' + entry.name + '" in this deck.');
+      return;
+    }
+    entry.qty += delta;
+    if(entry.qty <= 0) deck[section] = arr.filter(c=>c.id!==id);
+    saveDecksData();
+    renderDeckEditor();
+  }
+
+  function removeDeckCard(deckId, section, id){
+    const deck = decks.find(d=>d.id===deckId); if(!deck) return;
+    deck[section] = deck[section].filter(c=>c.id!==id);
+    saveDecksData();
+    renderDeckEditor();
+  }
+
+  function deckCardRow(deck, section, c){
+    const owned = collection[c.id] ? collection[c.id].qty : 0;
+    const need = totalCopiesByName(deck, c.name);
+    const ownedNote = owned >= need
+      ? '<span class="owned-note" style="color:var(--ok);">own '+owned+'</span>'
+      : '<span class="owned-note" style="color:var(--ember);">own '+owned+' — need '+(need-owned)+' more</span>';
+    return '<div class="card-row">' +
+      '<img src="'+c.image_url_small+'" alt="">' +
+      '<div class="card-row-info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+' &middot; '+ownedNote+'</span></div>' +
+      '<div class="qty-stepper">' +
+        '<button class="lp-btn" data-qminus="'+section+':'+c.id+'">−</button>' +
+        '<span>'+c.qty+'</span>' +
+        '<button class="lp-btn" data-qplus="'+section+':'+c.id+'">+</button>' +
+      '</div>' +
+      '<button class="btn small btn-danger" data-qremove="'+section+':'+c.id+'">Remove</button>' +
+    '</div>';
+  }
+
+  function renderDeckEditor(){
+    const deck = decks.find(d=>d.id===currentDeckId); if(!deck) return;
+    const m = sumQty(deck.main), e = sumQty(deck.extra), s = sumQty(deck.side);
+
+    const mainClass = (m>=40 && m<=60) ? "ok" : "warn";
+    const extraClass = e<=15 ? "ok" : "warn";
+    const sideClass = s<=15 ? "ok" : "warn";
+    document.getElementById("deckSummaryBar").innerHTML =
+      '<span class="meta-pill '+mainClass+'">Main '+m+' / 40–60</span>' +
+      '<span class="meta-pill '+extraClass+'">Extra '+e+' / 15</span>' +
+      '<span class="meta-pill '+sideClass+'">Side '+s+' / 15</span>';
+
+    document.getElementById("mainCount").textContent = m;
+    document.getElementById("extraCount").textContent = e;
+    document.getElementById("sideCount").textContent = s;
+
+    ["main","extra","side"].forEach(section=>{
+      const listEl = document.getElementById(section+"List");
+      const arr = deck[section];
+      if(!arr.length){ listEl.innerHTML = '<div class="empty-txt">Nothing here yet.</div>'; return; }
+      listEl.innerHTML = arr.map(c=>deckCardRow(deck, section, c)).join("");
+      listEl.querySelectorAll("[data-qminus]").forEach(b=>{
+        const [sec,id] = b.getAttribute("data-qminus").split(":");
+        b.addEventListener("click", ()=> adjustDeckCardQty(currentDeckId, sec, id, -1));
+      });
+      listEl.querySelectorAll("[data-qplus]").forEach(b=>{
+        const [sec,id] = b.getAttribute("data-qplus").split(":");
+        b.addEventListener("click", ()=> adjustDeckCardQty(currentDeckId, sec, id, 1));
+      });
+      listEl.querySelectorAll("[data-qremove]").forEach(b=>{
+        const [sec,id] = b.getAttribute("data-qremove").split(":");
+        b.addEventListener("click", ()=> removeDeckCard(currentDeckId, sec, id));
+      });
+    });
+  }
+
+  document.getElementById("deckSearchBtn").addEventListener("click", async ()=>{
+    const q = document.getElementById("deckSearchInput").value.trim();
+    const box = document.getElementById("deckSearchResults");
+    if(!q) return;
+    box.innerHTML = '<div class="loading-txt">Searching…</div>';
+    try{
+      const cards = await searchCardsAPI(q);
+      if(!cards.length){ box.innerHTML = '<div class="empty-txt">No matches.</div>'; return; }
+      box.innerHTML = '<div class="results-list">' + cards.map(c=>
+        '<div class="result-item"><img src="'+c.image_url_small+'" alt=""><div class="info"><b>'+escapeHtml(c.name)+'</b><span>'+escapeHtml(c.type)+'</span></div>' +
+        '<div class="row" style="gap:4px;"><button class="btn small btn-primary" data-add="'+c.id+'">Add</button><button class="btn small" data-addside="'+c.id+'">+ Side</button></div></div>'
+      ).join("") + '</div>';
+      box.querySelectorAll("[data-add]").forEach(btn=>{
+        const card = cards.find(c=>String(c.id)===btn.getAttribute("data-add"));
+        btn.addEventListener("click", ()=> addCardToDeck(currentDeckId, card, isExtraType(card.type) ? "extra" : "main"));
+      });
+      box.querySelectorAll("[data-addside]").forEach(btn=>{
+        const card = cards.find(c=>String(c.id)===btn.getAttribute("data-addside"));
+        btn.addEventListener("click", ()=> addCardToDeck(currentDeckId, card, "side"));
+      });
+    }catch(e){
+      box.innerHTML = '<div class="empty-txt">Couldn\'t reach the card database. Try again shortly.</div>';
+    }
+  });
+  document.getElementById("deckSearchInput").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("deckSearchBtn").click(); });
+
+  // ================= boot =================
+  loadCollectionData().then(renderCollection);
+  loadDecksData().then(renderDecksList);
+  showView("duel");
+</script>
 </body>
 </html>
